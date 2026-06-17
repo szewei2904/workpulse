@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Staff Productivity Dashboard</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f7f7f5; --surface: #ffffff; --surface2: #f1f0ed;
+    --border: rgba(0,0,0,0.08); --border-strong: rgba(0,0,0,0.15);
+    --text: #1a1a18; --text-muted: #6b6b67; --text-hint: #9e9e9a;
+    --blue: #378ADD; --blue-bg: #E6F1FB; --blue-text: #0C447C;
+    --teal: #1D9E75; --teal-bg: #E1F5EE; --teal-text: #085041;
+    --purple: #7F77DD; --purple-bg: #EEEDFE; --purple-text: #3C3489;
+    --amber: #BA7517; --amber-bg: #FAEEDA; --amber-text: #633806;
+    --coral: #D85A30; --coral-bg: #FAECE7; --coral-text: #712B13;
+    --green-bg: #EAF3DE; --green-text: #27500A;
+    --red-bg: #FCEBEB; --red-text: #791F1F;
+    --radius: 10px; --radius-sm: 6px;
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; line-height: 1.5; }
+
+  /* Setup */
+  #setup-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem; }
+  .setup-card { background: var(--surface); border: 0.5px solid var(--border-strong); border-radius: var(--radius); padding: 2.5rem; max-width: 460px; width: 100%; }
+  .setup-logo { display: flex; align-items: center; gap: 8px; margin-bottom: 1.5rem; }
+  .setup-logo .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--blue); }
+  .setup-logo span { font-size: 16px; font-weight: 500; }
+  .setup-card h1 { font-size: 20px; font-weight: 500; margin-bottom: 8px; }
+  .setup-card p { font-size: 13px; color: var(--text-muted); margin-bottom: 1.5rem; line-height: 1.7; }
+  .setup-card label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 6px; font-weight: 500; letter-spacing: .03em; }
+  .setup-card input { width: 100%; padding: 10px 12px; border: 0.5px solid var(--border-strong); border-radius: var(--radius-sm); font-size: 14px; background: var(--surface); color: var(--text); margin-bottom: 8px; outline: none; font-family: monospace; }
+  .setup-card input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(55,138,221,0.12); }
+  .setup-hint { font-size: 12px; color: var(--text-hint); margin-bottom: 1.5rem; line-height: 1.6; }
+  .setup-hint a { color: var(--blue-text); text-decoration: none; }
+  .setup-steps { background: var(--surface2); border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 1.5rem; }
+  .setup-steps p { font-size: 12px; color: var(--text-muted); font-weight: 500; margin-bottom: 8px; }
+  .setup-steps ol { padding-left: 1.2rem; font-size: 12px; color: var(--text-muted); line-height: 2; }
+  .setup-steps a { color: var(--blue-text); text-decoration: none; }
+  .btn-primary { width: 100%; padding: 10px; background: var(--text); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 500; cursor: pointer; transition: opacity .15s; }
+  .btn-primary:hover { opacity: .85; }
+  .error-msg { font-size: 12px; color: var(--red-text); background: var(--red-bg); padding: 8px 12px; border-radius: var(--radius-sm); margin-bottom: 1rem; display: none; }
+
+  /* App */
+  #app { display: none; }
+  .sidebar { position: fixed; top: 0; left: 0; bottom: 0; width: 220px; background: var(--surface); border-right: 0.5px solid var(--border); display: flex; flex-direction: column; padding: 1.25rem 0; z-index: 10; }
+  .sidebar-logo { padding: 0 1.25rem 1.25rem; font-size: 15px; font-weight: 500; color: var(--text); border-bottom: 0.5px solid var(--border); margin-bottom: 1rem; display: flex; align-items: center; gap: 8px; }
+  .sidebar-logo .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--blue); }
+  .nav-item { display: flex; align-items: center; gap: 9px; padding: 8px 1.25rem; font-size: 13px; color: var(--text-muted); cursor: pointer; border-left: 2px solid transparent; transition: all .1s; text-decoration: none; }
+  .nav-item:hover { color: var(--text); background: var(--surface2); }
+  .nav-item.active { color: var(--text); border-left-color: var(--blue); background: var(--blue-bg); font-weight: 500; }
+  .sidebar-section { font-size: 11px; color: var(--text-hint); padding: 12px 1.25rem 4px; letter-spacing: .05em; text-transform: uppercase; }
+  .sidebar-footer { margin-top: auto; padding: 1rem 1.25rem; border-top: 0.5px solid var(--border); }
+  .api-status { font-size: 11px; color: var(--text-hint); display: flex; align-items: center; gap: 5px; }
+  .api-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--teal); }
+  .api-provider { font-size: 10px; color: var(--text-hint); margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+  .gemini-badge { background: var(--blue-bg); color: var(--blue-text); font-size: 10px; padding: 1px 6px; border-radius: 10px; font-weight: 500; }
+
+  .main { margin-left: 220px; padding: 1.75rem 2rem; max-width: 1100px; }
+
+  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+  .topbar h1 { font-size: 18px; font-weight: 500; }
+  .topbar-meta { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+  .toggle-group { display: flex; gap: 4px; background: var(--surface2); border-radius: var(--radius-sm); padding: 3px; }
+  .toggle-btn { font-size: 12px; padding: 4px 12px; border: none; background: transparent; border-radius: 4px; cursor: pointer; color: var(--text-muted); transition: all .15s; }
+  .toggle-btn.active { background: var(--surface); color: var(--text); font-weight: 500; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+  .metric { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 1rem 1.1rem; }
+  .metric-label { font-size: 11px; color: var(--text-muted); margin-bottom: 6px; letter-spacing: .02em; }
+  .metric-value { font-size: 24px; font-weight: 500; }
+  .metric-delta { font-size: 11px; margin-top: 5px; }
+  .up { color: #27500A; } .down { color: #791F1F; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1.25rem; }
+  .card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 1.1rem 1.25rem; }
+  .card-title { font-size: 11px; color: var(--text-muted); font-weight: 500; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 1rem; }
+
+  .staff-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 0.5px solid var(--border); }
+  .staff-row:last-of-type { border-bottom: none; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; flex-shrink: 0; }
+  .staff-info { flex: 1; min-width: 0; }
+  .staff-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .staff-role { font-size: 11px; color: var(--text-muted); }
+  .bar-wrap { width: 80px; background: var(--surface2); border-radius: 3px; height: 5px; flex-shrink: 0; }
+  .bar-fill { height: 100%; border-radius: 3px; }
+  .bar-pct { font-size: 12px; font-weight: 500; min-width: 30px; text-align: right; flex-shrink: 0; }
+
+  .badge { font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500; white-space: nowrap; }
+  .badge-green { background: var(--green-bg); color: var(--green-text); }
+  .badge-amber { background: var(--amber-bg); color: var(--amber-text); }
+  .badge-red { background: var(--red-bg); color: var(--red-text); }
+
+  .task-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 0; border-bottom: 0.5px solid var(--border); }
+  .task-row:last-child { border-bottom: none; }
+  .task-name { font-size: 13px; font-weight: 500; }
+  .task-sub { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+
+  .dept-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .dept-row:last-child { margin-bottom: 0; }
+  .dept-label { font-size: 12px; color: var(--text-muted); width: 80px; flex-shrink: 0; }
+  .dept-bar-wrap { flex: 1; background: var(--surface2); border-radius: 3px; height: 8px; overflow: hidden; }
+  .dept-bar { height: 100%; border-radius: 3px; }
+  .dept-pct { font-size: 12px; font-weight: 500; min-width: 32px; text-align: right; }
+
+  /* AI Panel */
+  .ai-panel { position: fixed; right: 0; top: 0; bottom: 0; width: 340px; background: var(--surface); border-left: 0.5px solid var(--border); display: flex; flex-direction: column; z-index: 20; transform: translateX(100%); transition: transform .25s ease; }
+  .ai-panel.open { transform: translateX(0); }
+  .ai-header { padding: 1rem 1.25rem; border-bottom: 0.5px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .ai-header-title { font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 7px; }
+  .ai-provider-tag { font-size: 10px; background: var(--blue-bg); color: var(--blue-text); padding: 2px 7px; border-radius: 10px; font-weight: 500; }
+  .ai-close { background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); padding: 2px 6px; border-radius: 4px; line-height: 1; }
+  .ai-close:hover { background: var(--surface2); color: var(--text); }
+  .ai-messages { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 10px; }
+  .msg { max-width: 90%; padding: 9px 12px; border-radius: var(--radius-sm); font-size: 13px; line-height: 1.6; white-space: pre-wrap; }
+  .msg-user { background: var(--text); color: #fff; align-self: flex-end; border-radius: 10px 10px 2px 10px; }
+  .msg-ai { background: var(--surface2); color: var(--text); align-self: flex-start; border-radius: 10px 10px 10px 2px; }
+  .msg-thinking { color: var(--text-hint); font-style: italic; background: var(--surface2); align-self: flex-start; border-radius: 10px 10px 10px 2px; }
+  .prompts-grid { display: flex; flex-direction: column; gap: 6px; padding: 0 1rem 1rem; }
+  .prompt-chip { text-align: left; padding: 8px 12px; background: var(--surface2); border: 0.5px solid var(--border); border-radius: var(--radius-sm); font-size: 12px; color: var(--text-muted); cursor: pointer; transition: all .1s; }
+  .prompt-chip:hover { background: var(--surface); color: var(--text); border-color: var(--border-strong); }
+  .ai-input-row { padding: 1rem; border-top: 0.5px solid var(--border); display: flex; gap: 8px; }
+  .ai-input { flex: 1; padding: 8px 12px; border: 0.5px solid var(--border-strong); border-radius: var(--radius-sm); font-size: 13px; background: var(--surface); color: var(--text); outline: none; resize: none; height: 38px; font-family: inherit; }
+  .ai-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(55,138,221,0.1); }
+  .ai-send { padding: 8px 14px; background: var(--text); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 13px; cursor: pointer; transition: opacity .15s; }
+  .ai-send:hover { opacity: .8; }
+  .ai-send:disabled { opacity: .35; cursor: not-allowed; }
+
+  .fab { position: fixed; bottom: 2rem; right: 2rem; width: 50px; height: 50px; background: var(--text); color: #fff; border: none; border-radius: 50%; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(0,0,0,.15); z-index: 15; transition: right .25s ease; }
+  .fab:hover { opacity: .85; }
+
+  .action-row { display: flex; gap: 8px; margin-top: 1.5rem; flex-wrap: wrap; }
+  .action-btn { padding: 8px 16px; border: 0.5px solid var(--border-strong); background: var(--surface); border-radius: var(--radius-sm); font-size: 13px; color: var(--text); cursor: pointer; transition: all .1s; }
+  .action-btn:hover { background: var(--surface2); }
+
+  @media (max-width: 900px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; padding: 1.25rem; }
+    .grid-2 { grid-template-columns: 1fr; }
+    .ai-panel { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Setup Screen -->
+<div id="setup-screen">
+  <div class="setup-card">
+    <div class="setup-logo"><div class="dot"></div><span>WorkPulse</span></div>
+    <h1>Connect your AI assistant</h1>
+    <p>This dashboard uses Google Gemini — Google's free AI — to power the chat assistant. No payment needed, just a free Google account.</p>
+
+    <div class="setup-steps">
+      <p>How to get your free Gemini API key:</p>
+      <ol>
+        <li>Go to <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a></li>
+        <li>Sign in with your Google account</li>
+        <li>Click <strong>Create API key</strong></li>
+        <li>Copy and paste it below</li>
+      </ol>
+    </div>
+
+    <label>Gemini API key</label>
+    <input type="password" id="api-key-input" placeholder="Paste your API key here..." autocomplete="off" />
+    <div class="setup-hint">Your key is saved only in your browser. It is never sent anywhere except Google's API.</div>
+    <div class="error-msg" id="error-msg"></div>
+    <button class="btn-primary" onclick="startDashboard()">Open dashboard</button>
+  </div>
+</div>
+
+<!-- Main App -->
+<div id="app">
+  <nav class="sidebar">
+    <div class="sidebar-logo"><div class="dot"></div>WorkPulse</div>
+    <div class="sidebar-section">Overview</div>
+    <a class="nav-item active" href="#">&#9783; Dashboard</a>
+    <a class="nav-item" href="#">&#128100; Staff</a>
+    <a class="nav-item" href="#">&#10003; Tasks</a>
+    <div class="sidebar-section">Analytics</div>
+    <a class="nav-item" href="#">&#128200; Reports</a>
+    <a class="nav-item" href="#">&#128197; Schedule</a>
+    <div class="sidebar-footer">
+      <div class="api-status"><div class="api-dot"></div>AI assistant connected</div>
+      <div class="api-provider"><span class="gemini-badge">Gemini 1.5 Flash &middot; Free</span></div>
+    </div>
+  </nav>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1>Staff productivity</h1>
+        <div class="topbar-meta" id="date-label">Loading...</div>
+      </div>
+      <div class="toggle-group">
+        <button class="toggle-btn active" onclick="setView('week',this)">Week</button>
+        <button class="toggle-btn" onclick="setView('month',this)">Month</button>
+        <button class="toggle-btn" onclick="setView('quarter',this)">Quarter</button>
+      </div>
+    </div>
+
+    <div class="metrics">
+      <div class="metric">
+        <div class="metric-label">&#128200; Avg output</div>
+        <div class="metric-value" id="m-output">87%</div>
+        <div class="metric-delta up">&#8593; +4% vs last period</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">&#10003; Tasks done</div>
+        <div class="metric-value" id="m-tasks">142</div>
+        <div class="metric-delta up">&#8593; +12 vs last period</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">&#128100; Attendance</div>
+        <div class="metric-value" id="m-attend">96%</div>
+        <div class="metric-delta down">&#8595; &minus;2% vs last period</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">&#9873; On-time rate</div>
+        <div class="metric-value" id="m-ontime">91%</div>
+        <div class="metric-delta up">&#8593; +3% vs last period</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Individual performance</div>
+        <div class="staff-row">
+          <div class="avatar" style="background:var(--blue-bg);color:var(--blue-text);">AR</div>
+          <div class="staff-info"><div class="staff-name">Amir Rahman</div><div class="staff-role">Engineering</div></div>
+          <div class="bar-wrap"><div class="bar-fill" style="width:95%;background:var(--blue);"></div></div>
+          <div class="bar-pct">95%</div>
+          <span class="badge badge-green">On track</span>
+        </div>
+        <div class="staff-row">
+          <div class="avatar" style="background:var(--teal-bg);color:var(--teal-text);">SL</div>
+          <div class="staff-info"><div class="staff-name">Siti Lim</div><div class="staff-role">Operations</div></div>
+          <div class="bar-wrap"><div class="bar-fill" style="width:88%;background:var(--teal);"></div></div>
+          <div class="bar-pct">88%</div>
+          <span class="badge badge-green">On track</span>
+        </div>
+        <div class="staff-row">
+          <div class="avatar" style="background:var(--purple-bg);color:var(--purple-text);">MC</div>
+          <div class="staff-info"><div class="staff-name">Maya Chen</div><div class="staff-role">Marketing</div></div>
+          <div class="bar-wrap"><div class="bar-fill" style="width:82%;background:var(--purple);"></div></div>
+          <div class="bar-pct">82%</div>
+          <span class="badge badge-green">On track</span>
+        </div>
+        <div class="staff-row">
+          <div class="avatar" style="background:var(--amber-bg);color:var(--amber-text);">DK</div>
+          <div class="staff-info"><div class="staff-name">David Kumar</div><div class="staff-role">Finance</div></div>
+          <div class="bar-wrap"><div class="bar-fill" style="width:71%;background:var(--amber);"></div></div>
+          <div class="bar-pct">71%</div>
+          <span class="badge badge-amber">Review</span>
+        </div>
+        <div class="staff-row">
+          <div class="avatar" style="background:var(--coral-bg);color:var(--coral-text);">NZ</div>
+          <div class="staff-info"><div class="staff-name">Nurul Zahra</div><div class="staff-role">HR</div></div>
+          <div class="bar-wrap"><div class="bar-fill" style="width:58%;background:var(--coral);"></div></div>
+          <div class="bar-pct">58%</div>
+          <span class="badge badge-red">At risk</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Task status</div>
+        <div class="task-row">
+          <div><div class="task-name">Q2 financial report</div><div class="task-sub">Finance &middot; Due today</div></div>
+          <span class="badge badge-amber">In progress</span>
+        </div>
+        <div class="task-row">
+          <div><div class="task-name">Product launch prep</div><div class="task-sub">Marketing &middot; Due Friday</div></div>
+          <span class="badge badge-green">On track</span>
+        </div>
+        <div class="task-row">
+          <div><div class="task-name">System migration</div><div class="task-sub">Engineering &middot; Due Jun 20</div></div>
+          <span class="badge badge-green">On track</span>
+        </div>
+        <div class="task-row">
+          <div><div class="task-name">Staff appraisals</div><div class="task-sub">HR &middot; Overdue 2 days</div></div>
+          <span class="badge badge-red">Overdue</span>
+        </div>
+        <div class="task-row">
+          <div><div class="task-name">Vendor contract review</div><div class="task-sub">Operations &middot; Due Jun 22</div></div>
+          <span class="badge badge-green">On track</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:1.25rem;">
+      <div class="card-title">Department output</div>
+      <div class="dept-row">
+        <div class="dept-label">Engineering</div>
+        <div class="dept-bar-wrap"><div class="dept-bar" style="width:92%;background:var(--blue);"></div></div>
+        <div class="dept-pct">92%</div>
+      </div>
+      <div class="dept-row">
+        <div class="dept-label">Operations</div>
+        <div class="dept-bar-wrap"><div class="dept-bar" style="width:87%;background:var(--teal);"></div></div>
+        <div class="dept-pct">87%</div>
+      </div>
+      <div class="dept-row">
+        <div class="dept-label">Marketing</div>
+        <div class="dept-bar-wrap"><div class="dept-bar" style="width:80%;background:var(--purple);"></div></div>
+        <div class="dept-pct">80%</div>
+      </div>
+      <div class="dept-row">
+        <div class="dept-label">Finance</div>
+        <div class="dept-bar-wrap"><div class="dept-bar" style="width:74%;background:var(--amber);"></div></div>
+        <div class="dept-pct">74%</div>
+      </div>
+      <div class="dept-row">
+        <div class="dept-label">HR</div>
+        <div class="dept-bar-wrap"><div class="dept-bar" style="width:61%;background:var(--coral);"></div></div>
+        <div class="dept-pct">61%</div>
+      </div>
+    </div>
+
+    <div class="action-row">
+      <button class="action-btn" onclick="askAI('Generate a full productivity report summary for this week')">&#128196; Generate report</button>
+      <button class="action-btn" onclick="askAI('Which staff members need a performance check-in this week and why?')">&#128276; Flag check-ins</button>
+      <button class="action-btn" onclick="askAI('Which departments are underperforming and what might be causing it?')">&#128269; Diagnose gaps</button>
+      <button class="action-btn" onclick="askAI('What are 3 specific actions I can take this week to improve team productivity?')">&#9889; Get recommendations</button>
+    </div>
+  </main>
+
+  <button class="fab" onclick="togglePanel()" title="Ask AI assistant" id="fab-btn">&#128172;</button>
+
+  <div class="ai-panel" id="ai-panel">
+    <div class="ai-header">
+      <div class="ai-header-title">
+        &#128172; Ask AI
+        <span class="ai-provider-tag">Gemini Free</span>
+      </div>
+      <button class="ai-close" onclick="togglePanel()">&#10005;</button>
+    </div>
+    <div class="ai-messages" id="ai-messages">
+      <div class="msg msg-ai">Hi! I'm your free AI assistant powered by Google Gemini. Ask me anything about your team's productivity.</div>
+    </div>
+    <div class="prompts-grid" id="prompt-chips">
+      <button class="prompt-chip" onclick="askAI('Who needs a performance check-in this week?')">Who needs a check-in this week?</button>
+      <button class="prompt-chip" onclick="askAI('Why is HR underperforming compared to other departments?')">Why is HR underperforming?</button>
+      <button class="prompt-chip" onclick="askAI('Give me a weekly summary I can share with senior management')">Write a management summary</button>
+    </div>
+    <div class="ai-input-row">
+      <textarea class="ai-input" id="ai-input" placeholder="Ask about your team..." rows="1"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
+      <button class="ai-send" id="send-btn" onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let geminiKey = '';
+let panelOpen = false;
+let chatHistory = [];
+
+const SYSTEM_CONTEXT = `You are an AI assistant embedded in a staff productivity dashboard called WorkPulse. Here is the current data:
+
+METRICS (current week):
+- Average output: 87% (+4% vs last week)
+- Tasks completed: 142 (+12 vs last week)
+- Attendance rate: 96% (-2% vs last week)
+- On-time task rate: 91% (+3% vs last week)
+
+INDIVIDUAL PERFORMANCE:
+- Amir Rahman (Engineering): 95% — On track
+- Siti Lim (Operations): 88% — On track
+- Maya Chen (Marketing): 82% — On track
+- David Kumar (Finance): 71% — Needs review
+- Nurul Zahra (HR): 58% — At risk
+
+TASK STATUS:
+- Q2 Financial Report (Finance): In progress, due today
+- Product Launch Prep (Marketing): On track, due Friday
+- System Migration (Engineering): On track, due Jun 20
+- Staff Appraisals (HR): OVERDUE by 2 days
+- Vendor Contract Review (Operations): On track, due Jun 22
+
+DEPARTMENT OUTPUT:
+- Engineering: 92%  |  Operations: 87%  |  Marketing: 80%  |  Finance: 74%  |  HR: 61%
+
+Be concise, actionable, and helpful. Use bullet points where appropriate.`;
+
+function startDashboard() {
+  const key = document.getElementById('api-key-input').value.trim();
+  const err = document.getElementById('error-msg');
+  if (!key || key.length < 20) {
+    err.textContent = 'Please paste your full API key — it should be a long string of letters and numbers.';
+    err.style.display = 'block';
+    return;
+  }
+  err.style.display = 'none';
+  geminiKey = key;
+  localStorage.setItem('gemini_key', key);
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('date-label').textContent =
+    new Date().toLocaleDateString('en-MY', { weekday:'long', year:'numeric', month:'long', day:'numeric' }) + ' · 24 employees';
+}
+
+window.addEventListener('load', () => {
+  const saved = localStorage.getItem('gemini_key');
+  if (saved) {
+    geminiKey = saved;
+    document.getElementById('setup-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('date-label').textContent =
+      new Date().toLocaleDateString('en-MY', { weekday:'long', year:'numeric', month:'long', day:'numeric' }) + ' · 24 employees';
+  }
+});
+
+const views = {
+  week:    { output:'87%', tasks:'142', attend:'96%', ontime:'91%' },
+  month:   { output:'84%', tasks:'561', attend:'94%', ontime:'89%' },
+  quarter: { output:'82%', tasks:'1,632', attend:'93%', ontime:'87%' },
+};
+function setView(v, btn) {
+  const d = views[v];
+  document.getElementById('m-output').textContent = d.output;
+  document.getElementById('m-tasks').textContent = d.tasks;
+  document.getElementById('m-attend').textContent = d.attend;
+  document.getElementById('m-ontime').textContent = d.ontime;
+  document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function togglePanel() {
+  panelOpen = !panelOpen;
+  document.getElementById('ai-panel').classList.toggle('open', panelOpen);
+  document.getElementById('fab-btn').style.right = panelOpen ? '356px' : '2rem';
+}
+
+function appendMsg(text, cls) {
+  const el = document.createElement('div');
+  el.className = 'msg ' + cls;
+  el.textContent = text;
+  const c = document.getElementById('ai-messages');
+  c.appendChild(el);
+  c.scrollTop = c.scrollHeight;
+  return el;
+}
+
+async function sendMessage() {
+  const input = document.getElementById('ai-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  await sendToAI(text);
+}
+
+function askAI(prompt) {
+  if (!panelOpen) togglePanel();
+  sendToAI(prompt);
+}
+
+async function sendToAI(userText) {
+  document.getElementById('prompt-chips').style.display = 'none';
+  appendMsg(userText, 'msg-user');
+  chatHistory.push({ role: 'user', parts: [{ text: userText }] });
+
+  const btn = document.getElementById('send-btn');
+  btn.disabled = true;
+  const thinking = appendMsg('Thinking...', 'msg-thinking');
+
+  try {
+    const payload = {
+      system_instruction: { parts: [{ text: SYSTEM_CONTEXT }] },
+      contents: chatHistory
+    };
+
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }
+    );
+    const data = await res.json();
+
+    if (data.error) {
+      thinking.textContent = 'Error: ' + (data.error.message || 'Check your API key.');
+      thinking.className = 'msg msg-ai';
+      chatHistory.pop();
+    } else {
+      const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response received.';
+      thinking.textContent = reply;
+      thinking.className = 'msg msg-ai';
+      chatHistory.push({ role: 'model', parts: [{ text: reply }] });
+    }
+  } catch (e) {
+    thinking.textContent = 'Connection error. Please check your internet and try again.';
+    thinking.className = 'msg msg-ai';
+    chatHistory.pop();
+  }
+  btn.disabled = false;
+}
+</script>
+</body>
+</html>
