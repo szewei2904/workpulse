@@ -81,6 +81,17 @@
   .history-view { font-size: 12px; color: var(--blue); cursor: pointer; font-weight: 600; flex-shrink: 0; }
 
   .error-box { background: var(--red-bg); border: 1px solid #FECACA; color: #991B1B; font-size: 12px; padding: 10px 14px; border-radius: 8px; margin-top: 12px; }
+
+  .task-form-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .task-form-row .key-input { flex: 1; min-width: 140px; }
+  select.key-input { background: var(--white); cursor: pointer; }
+
+  .task-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--canvas); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; }
+  .task-staff-tag { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; flex-shrink: 0; color: #fff; }
+  .task-text { flex: 1; font-size: 13px; color: var(--navy); }
+  .task-meta { font-size: 11px; color: var(--slate-light); flex-shrink: 0; }
+  .task-delete { color: var(--slate-light); cursor: pointer; flex-shrink: 0; padding: 4px; background: none; border: none; }
+  .task-delete:hover { color: var(--red); }
 </style>
 </head>
 <body>
@@ -138,6 +149,23 @@
       <div style="margin-top: 12px;">
         <a class="help-link" href="https://console.groq.com/keys" target="_blank" rel="noopener">Get a free Groq API key →</a>
       </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Pending tasks</div>
+      <div class="card-sub">Add open tasks per staff member — these feed directly into the AI report below.</div>
+
+      <div class="task-form-row">
+        <select class="key-input" id="taskStaffSelect" style="flex: 0 0 180px;">
+          <option value="">Loading staff…</option>
+        </select>
+        <input class="key-input" id="taskText" type="text" placeholder="Task description, e.g. Fix pool gate latch">
+        <input class="key-input" id="taskAssignedBy" type="text" placeholder="Assigned by (optional)" style="flex: 0 0 160px;">
+        <button class="btn btn-primary" onclick="addTask()" id="addTaskBtn">Add</button>
+      </div>
+      <div id="taskError"></div>
+
+      <div id="taskList" style="margin-top: 1.25rem;"><div class="empty-state">Loading tasks…</div></div>
     </div>
 
     <div class="card">
@@ -269,6 +297,103 @@ async function fetchPendingTasksByStaff() {
       tasks: (tasks || []).filter(function(t) { return t.staff_id === s.id; })
     };
   });
+}
+
+let STAFF_LIST = [];
+const STAFF_COLORS = ['#2563EB', '#7C3AED', '#D97706', '#0891B2', '#E11D48', '#059669'];
+
+async function loadStaffDropdown() {
+  const { data, error } = await supabaseClient
+    .from('staff')
+    .select('id, name')
+    .eq('branch_id', CURRENT_BRANCH_ID)
+    .order('name');
+
+  const select = document.getElementById('taskStaffSelect');
+  if (error || !data || data.length === 0) {
+    select.innerHTML = '<option value="">No staff found</option>';
+    return;
+  }
+  STAFF_LIST = data;
+  select.innerHTML = data.map(function(s) { return '<option value="' + s.id + '">' + s.name + '</option>'; }).join('');
+}
+
+function staffColor(staffId) {
+  const idx = STAFF_LIST.findIndex(function(s) { return s.id === staffId; });
+  return STAFF_COLORS[idx >= 0 ? idx % STAFF_COLORS.length : 0];
+}
+function staffName(staffId) {
+  const s = STAFF_LIST.find(function(s) { return s.id === staffId; });
+  return s ? s.name : 'Unknown';
+}
+
+async function addTask() {
+  clearCardError('taskError');
+  const staffId = document.getElementById('taskStaffSelect').value;
+  const taskText = document.getElementById('taskText').value.trim();
+  const assignedBy = document.getElementById('taskAssignedBy').value.trim();
+
+  if (!staffId) { showCardError('taskError', 'Pick a staff member.'); return; }
+  if (!taskText) { showCardError('taskError', 'Enter a task description.'); return; }
+
+  const btn = document.getElementById('addTaskBtn');
+  btn.disabled = true;
+  btn.textContent = 'Adding...';
+
+  const { error } = await supabaseClient.from('pending_tasks').insert({
+    staff_id: staffId,
+    branch_id: CURRENT_BRANCH_ID,
+    task_date: new Date().toISOString().slice(0, 10),
+    assigned_by: assignedBy || null,
+    task_text: taskText,
+    resolved: false
+  });
+
+  btn.disabled = false;
+  btn.textContent = 'Add';
+
+  if (error) { showCardError('taskError', error.message); return; }
+
+  document.getElementById('taskText').value = '';
+  document.getElementById('taskAssignedBy').value = '';
+  loadTaskList();
+}
+
+async function resolveTask(taskId) {
+  await supabaseClient.from('pending_tasks').update({ resolved: true }).eq('id', taskId);
+  loadTaskList();
+}
+
+async function loadTaskList() {
+  const { data, error } = await supabaseClient
+    .from('pending_tasks')
+    .select('id, staff_id, task_text, assigned_by, task_date')
+    .eq('branch_id', CURRENT_BRANCH_ID)
+    .eq('resolved', false)
+    .order('task_date', { ascending: true });
+
+  const listEl = document.getElementById('taskList');
+
+  if (error) {
+    listEl.innerHTML = '<div class="error-box">' + error.message + '</div>';
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    listEl.innerHTML = '<div class="empty-state">No open tasks. Add one above.</div>';
+    return;
+  }
+
+  listEl.innerHTML = data.map(function(t) {
+    const color = staffColor(t.staff_id);
+    const name = staffName(t.staff_id);
+    return '<div class="task-item">' +
+        '<span class="task-staff-tag" style="background:' + color + '">' + name + '</span>' +
+        '<span class="task-text">' + t.task_text.replace(/</g, '&lt;') + '</span>' +
+        (t.assigned_by ? '<span class="task-meta">from ' + t.assigned_by.replace(/</g, '&lt;') + '</span>' : '') +
+        '<button class="task-delete" onclick="resolveTask(\'' + t.id + '\')" title="Mark resolved">✕</button>' +
+      '</div>';
+  }).join('');
 }
 
 async function generateReport() {
@@ -427,12 +552,15 @@ function viewHistoryReport(text) {
     document.getElementById('branchNameText').textContent = 'Select a branch first';
     document.getElementById('setupCard').innerHTML = '<div class="empty-state">As superadmin, open a specific branch to manage its AI reports.</div>';
     document.getElementById('generateBtn').disabled = true;
+    document.getElementById('addTaskBtn').disabled = true;
     return;
   } else {
     document.getElementById('branchNameText').textContent = 'No branch assigned';
     return;
   }
 
+  await loadStaffDropdown();
+  await loadTaskList();
   await loadExistingKey();
   await loadHistory();
 })();
