@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>WorkPulse — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --navy: #0F1B3D; --navy2: #16234D; --blue: #2563EB; --blue-light: #DBEAFE;
+    --canvas: #FAFAF8; --slate: #475569; --slate-light: #94A3B8; --border: #E2E8F0;
+    --green: #059669; --green-bg: #ECFDF5; --amber: #D97706; --amber-bg: #FFFBEB;
+    --red: #DC2626; --red-bg: #FEF2F2; --white: #FFFFFF; --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', sans-serif; background: var(--canvas); color: var(--navy); font-size: 14px; display: flex; min-height: 100vh; }
+
+  .sidebar { width: 232px; background: var(--navy); display: flex; flex-direction: column; padding: 1.5rem 0; position: fixed; top:0; left:0; bottom:0; color: #fff; z-index: 10; }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 0 1.25rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 1rem; }
+  .brand-icon { width: 32px; height: 32px; background: var(--blue); border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .brand-icon svg { width: 18px; height: 18px; fill: #fff; }
+  .brand-name { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 16px; }
+  .brand-tag { font-size: 10px; color: rgba(255,255,255,0.4); letter-spacing: 0.06em; }
+
+  .branch-locked { margin: 0 1.25rem 1.25rem; padding: 10px 12px; background: rgba(5,150,105,0.15); border: 1px solid rgba(5,150,105,0.3); border-radius: 8px; }
+  .branch-locked-label { font-size: 9px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 3px; }
+  .branch-locked-name { font-size: 13px; font-weight: 700; color: #6EE7B7; display: flex; align-items: center; gap: 6px; }
+
+  .nav-label { font-size: 10px; color: rgba(255,255,255,0.35); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 0 1.25rem 0.5rem; margin-top: 1rem; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 1.25rem; color: rgba(255,255,255,0.65); font-size: 13px; cursor: pointer; text-decoration: none; }
+  .nav-item:hover { background: rgba(255,255,255,0.05); color: #fff; }
+  .nav-item.active { background: rgba(37,99,235,0.18); color: #fff; border-right: 2px solid var(--blue); font-weight: 500; }
+  .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+  .sidebar-footer { margin-top: auto; padding: 1rem 1.25rem; border-top: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 10px; }
+  .user-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--blue); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+  .user-name { font-size: 12px; font-weight: 600; color: #fff; }
+  .user-role { font-size: 10px; color: rgba(255,255,255,0.4); }
+  .logout-link { margin-left: auto; color: rgba(255,255,255,0.4); cursor: pointer; }
+
+  .main { margin-left: 232px; flex: 1; display: flex; flex-direction: column; }
+  .topbar { background: var(--white); border-bottom: 1px solid var(--border); padding: 1rem 1.75rem; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 5; }
+  .topbar-title { font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 700; }
+  .topbar-sub { font-size: 12px; color: var(--slate-light); margin-top: 1px; }
+  .period-tabs { display: flex; gap: 3px; background: var(--canvas); border-radius: 9px; padding: 3px; border: 1px solid var(--border); }
+  .period-tab { padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; color: var(--slate); border: none; background: transparent; font-family: 'Inter', sans-serif; font-weight: 500; }
+  .period-tab.active { background: var(--white); color: var(--navy); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+
+  .content { padding: 1.75rem; display: flex; flex-direction: column; gap: 1.5rem; }
+
+  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .kpi-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.1rem 1.25rem; }
+  .kpi-icon { width: 32px; height: 32px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 15px; margin-bottom: 0.7rem; }
+  .kpi-val { font-family: 'Outfit', sans-serif; font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
+  .kpi-label { font-size: 12px; color: var(--slate); margin-top: 2px; }
+  .kpi-change { font-size: 11px; margin-top: 5px; font-weight: 500; }
+  .up { color: var(--green); } .down { color: var(--red); }
+
+  .two-col { display: grid; grid-template-columns: 1fr 360px; gap: 1.5rem; }
+  .card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1.4rem; }
+  .card-title { font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between; }
+  .card-title span { font-size: 11px; color: var(--slate-light); font-weight: 400; font-family: 'Inter', sans-serif; }
+
+  .staff-list { display: flex; flex-direction: column; gap: 5px; }
+  .staff-row { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 9px; cursor: pointer; }
+  .staff-row:hover { background: var(--canvas); }
+  .staff-row.selected { background: var(--blue-light); }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+  .staff-info { flex: 1; min-width: 0; }
+  .staff-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .staff-role { font-size: 11px; color: var(--slate-light); }
+  .staff-score { text-align: right; }
+  .score-val { font-size: 14px; font-weight: 700; font-family: 'Outfit', sans-serif; }
+  .score-bar { height: 3px; border-radius: 2px; margin-top: 3px; width: 50px; }
+  .status-pill { font-size: 10px; padding: 2px 8px; border-radius: 20px; font-weight: 600; white-space: nowrap; }
+  .s-green { background: var(--green-bg); color: var(--green); }
+  .s-amber { background: var(--amber-bg); color: var(--amber); }
+
+  .detail-panel-empty { color: var(--slate-light); font-size: 13px; text-align: center; padding: 3rem 0; }
+  .detail-header { display: flex; align-items: center; gap: 12px; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+  .detail-avatar { width: 44px; height: 44px; border-radius: 50%; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .detail-name { font-size: 15px; font-weight: 700; font-family: 'Outfit', sans-serif; }
+  .detail-role { font-size: 12px; color: var(--slate); margin-top: 1px; }
+  .detail-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 1rem; }
+  .dstat { background: var(--canvas); border-radius: 8px; padding: 8px 10px; text-align: center; }
+  .dstat-val { font-size: 16px; font-weight: 700; font-family: 'Outfit', sans-serif; }
+  .dstat-label { font-size: 10px; color: var(--slate-light); margin-top: 1px; }
+  .detail-note { font-size: 12px; color: var(--slate); line-height: 1.6; border-left: 2px solid var(--blue); padding-left: 10px; margin-bottom: 1rem; background: var(--canvas); padding: 10px 12px; border-radius: 0 8px 8px 0; }
+  .spark-wrap { position: relative; height: 60px; }
+
+  .chart-wrap { position: relative; height: 220px; }
+</style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="brand">
+    <div class="brand-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 12c3-7 9-9 18-9-2 5-2 9 0 14-9 0-15-2-18-5z" fill="white"/></svg></div>
+    <div><div class="brand-name">WorkPulse</div><div class="brand-tag">Operations Platform</div></div>
+  </div>
+
+  <div class="branch-locked">
+    <div class="branch-locked-label">Your branch</div>
+    <div class="branch-locked-name" id="branchName">
+      <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="14" height="14" rx="2"/><path d="M7 7h.01M13 7h.01M7 13h.01M13 13h.01"/></svg>
+      <span id="branchNameText">Loading...</span>
+    </div>
+  </div>
+
+  <div class="nav-label">Overview</div>
+  <a href="#" class="nav-item active"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="11" y="3" width="6" height="6" rx="1"/><rect x="3" y="11" width="6" height="6" rx="1"/><rect x="11" y="11" width="6" height="6" rx="1"/></svg>Dashboard</a>
+  <a href="#" class="nav-item"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="7" r="3"/><path d="M4 17c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>Staff</a>
+  <a href="#" class="nav-item"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="7"/><polyline points="10,7 10,10 12,12"/></svg>Pending work</a>
+  <a href="#" class="nav-item"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h12v12H4z"/><path d="M8 8h4M8 11h4M8 14h2"/></svg>Daily reports</a>
+
+  <div class="nav-label">Configuration</div>
+  <a href="whatsapp-settings.html" class="nav-item"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 18s7-4.5 7-10a7 7 0 00-14 0c0 5.5 7 10 7 10z"/><circle cx="10" cy="8" r="2.5"/></svg>WhatsApp API</a>
+
+  <div class="sidebar-footer">
+    <div class="user-avatar" id="userAvatar">··</div>
+    <div><div class="user-name" id="userName">Loading...</div><div class="user-role">Branch Admin</div></div>
+    <a href="#" class="logout-link" onclick="wpSignOut(); return false;"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 17H4a1 1 0 01-1-1V4a1 1 0 011-1h3M13 14l4-4-4-4M17 10H7"/></svg></a>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">SAC Sailfish — Staff performance</div>
+      <div class="topbar-sub">May 2025 – Jun 2026 · 7 staff members</div>
+    </div>
+    <div class="period-tabs">
+      <button class="period-tab active">Month</button>
+      <button class="period-tab">Quarter</button>
+      <button class="period-tab">All time</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:var(--blue-light);color:var(--blue);">📈</div>
+        <div class="kpi-val">89%</div>
+        <div class="kpi-label">Rounding compliance</div>
+        <div class="kpi-change up">↑ +6% vs last month</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:var(--green-bg);color:var(--green);">✓</div>
+        <div class="kpi-val">116</div>
+        <div class="kpi-label">Roundings logged</div>
+        <div class="kpi-change up">↑ +22 vs last month</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:var(--amber-bg);color:var(--amber);">👤</div>
+        <div class="kpi-val">109</div>
+        <div class="kpi-label">Attendance posts</div>
+        <div class="kpi-change up">↑ +24 vs last month</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:var(--red-bg);color:var(--red);">⚑</div>
+        <div class="kpi-val">23</div>
+        <div class="kpi-label">Pending tasks</div>
+        <div class="kpi-change down">8 overdue</div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Individual performance <span>Click a staff member for details</span></div>
+        <div class="staff-list" id="staffList"></div>
+      </div>
+      <div class="card" id="detailPanel">
+        <div class="detail-panel-empty">Select a staff member to view their profile</div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Monthly rounding activity</div>
+        <div class="chart-wrap"><canvas id="roundChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Active staff this branch</div>
+        <div style="display:flex; flex-direction:column; gap:10px; margin-top:0.5rem;">
+          <div style="display:flex; justify-content:space-between; font-size:12px;"><span style="color:var(--slate);">Arisyah SAC</span><span style="font-weight:600;">Operations Lead</span></div>
+          <div style="display:flex; justify-content:space-between; font-size:12px;"><span style="color:var(--slate);">Madhu Sac</span><span style="font-weight:600;">Front Desk</span></div>
+          <div style="display:flex; justify-content:space-between; font-size:12px;"><span style="color:var(--slate);">Abinash</span><span style="font-weight:600;">Facilities</span></div>
+          <div style="display:flex; justify-content:space-between; font-size:12px;"><span style="color:var(--slate);">Danish</span><span style="font-weight:600;">Facilities</span></div>
+          <div style="display:flex; justify-content:space-between; font-size:12px;"><span style="color:var(--slate);">Aqilah</span><span style="font-weight:600;">Facilities</span></div>
+          <div style="display:flex; justify-content:space-between; font-size:12px;"><span style="color:var(--slate);">Navin</span><span style="font-weight:600;">Facilities / Admin</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+const SUPABASE_URL = 'https://srsukpjjnatjchskmxfk.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_T8IShS-GWVmGnZH4hy6cYA_Li6H_tHw';
+
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+async function wpSignUp(email, password) {
+  const { data, error } = await supabaseClient.auth.signUp({ email, password });
+  return { data, error };
+}
+
+async function wpSignIn(email, password) {
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  return { data, error };
+}
+
+async function wpSignOut() {
+  await supabaseClient.auth.signOut();
+  window.location.href = 'login.html';
+}
+
+async function wpGetProfile() {
+  const { data: { user } } = await supabaseClient.auth.getUser();
+  if (!user) return null;
+
+  const { data: profile, error } = await supabaseClient
+    .from('profiles')
+    .select('*, branches(*)')
+    .eq('id', user.id)
+    .single();
+
+  if (error) {
+    console.error('Profile fetch error:', error);
+    return null;
+  }
+  return { ...profile, email: user.email };
+}
+
+async function wpRequireAuth(requiredRole = null) {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (!session) {
+    window.location.href = 'login.html';
+    return null;
+  }
+  const profile = await wpGetProfile();
+  if (!profile) {
+    window.location.href = 'login.html';
+    return null;
+  }
+  if (requiredRole && profile.role !== requiredRole) {
+    window.location.href = profile.role === 'superadmin' ? 'superadmin.html' : 'admin.html';
+    return null;
+  }
+  return profile;
+}
+
+async function wpGetBranches() {
+  const { data, error } = await supabaseClient.from('branches').select('*').order('created_at');
+  if (error) { console.error(error); return []; }
+  return data;
+}
+
+async function wpCreateBranch(name, location, whatsappGroupLink) {
+  const { data, error } = await supabaseClient
+    .from('branches')
+    .insert({ name, location, whatsapp_group_link: whatsappGroupLink })
+    .select()
+    .single();
+  return { data, error };
+}
+
+async function wpAssignAdmin(email, fullName, branchId) {
+  const { data, error } = await supabaseClient.rpc('invite_branch_admin', {
+    admin_email: email,
+    admin_name: fullName,
+    target_branch_id: branchId
+  });
+  return { data, error };
+}
+</script>
+<script>
+let CURRENT_BRANCH_ID = null;
+
+(async () => {
+  const profile = await wpRequireAuth('admin');
+  if (!profile) return; // redirected already
+  document.getElementById('userName').textContent = profile.full_name || profile.email;
+  const initials = (profile.full_name || profile.email).split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('userAvatar').textContent = initials;
+
+  if (profile.branches) {
+    document.getElementById('branchNameText').textContent = profile.branches.name;
+    CURRENT_BRANCH_ID = profile.branches.id;
+  } else {
+    document.getElementById('branchNameText').textContent = 'No branch assigned';
+  }
+
+  // TODO once a `staff` table exists: replace the hardcoded STAFF array below
+  // with: const { data } = await supabaseClient.from('staff').select('*').eq('branch_id', CURRENT_BRANCH_ID);
+})();
+</script>
+<script>
+const STAFF = [
+  { initials:'AR', name:'Arisyah SAC', role:'Operations Lead', color:'#2563EB', score:94, status:'Active', statusClass:'s-green',
+    roundings:27, attendance:331, pct:75,
+    note:'Primary coordinator. Manages vendors, contractors, and cross-team communication. Highest text contributor across 14 months.',
+    rounding:[3,4,2,2,3,1,3,2,2,1,3,0,0,1] },
+  { initials:'MD', name:'Madhu Sac', role:'Front Desk', color:'#7C3AED', score:80, status:'Active', statusClass:'s-green',
+    roundings:33, attendance:182, pct:58,
+    note:'2nd highest attendance reporter. Long-tenure member. Covers shifts and assists with member management.',
+    rounding:[2,2,3,3,2,2,4,5,3,3,2,1,0,1] },
+  { initials:'AB', name:'Abinash', role:'Facilities Staff', color:'#D97706', score:87, status:'Active', statusClass:'s-green',
+    roundings:220, attendance:16, pct:21,
+    note:'Joined Mar 2026. 220 roundings in 3.5 months. Handles pool and lift contractor assists.',
+    rounding:[0,0,0,0,0,0,0,0,0,0,64,60,68,28] },
+  { initials:'DN', name:'Danish', role:'Facilities Staff', color:'#0891B2', score:91, status:'Active', statusClass:'s-green',
+    roundings:275, attendance:113, pct:38,
+    note:'Joined Dec 2025. 275 roundings in 7 months — top performer. Handles contractor assists.',
+    rounding:[0,0,0,0,0,0,0,33,54,50,36,43,33,26] },
+  { initials:'AQ', name:'Aqilah', role:'Facilities Staff', color:'#E11D48', score:72, status:'Active', statusClass:'s-amber',
+    roundings:11, attendance:0, pct:10,
+    note:'Active facilities staff doing roundings and facility checks. Coordinates yoga classes.',
+    rounding:[0,0,0,0,0,0,0,0,0,0,0,4,5,2] },
+  { initials:'NV', name:'Navin', role:'Facilities / Admin', color:'#059669', score:75, status:'Active', statusClass:'s-amber',
+    roundings:9, attendance:7, pct:10,
+    note:'Active since May 2026. Does roundings, attendance, and activity coordination.',
+    rounding:[0,0,0,0,0,0,0,0,0,0,0,0,5,4] },
+];
+
+const MONTHS = ['May 25','Jun 25','Jul 25','Aug 25','Sep 25','Oct 25','Nov 25','Dec 25','Jan 26','Feb 26','Mar 26','Apr 26','May 26','Jun 26'];
+
+const staffList = document.getElementById('staffList');
+STAFF.forEach((s, i) => {
+  const el = document.createElement('div');
+  el.className = 'staff-row';
+  el.innerHTML = `
+    <div class="avatar" style="background:${s.color}18;color:${s.color}">${s.initials}</div>
+    <div class="staff-info">
+      <div class="staff-name">${s.name}</div>
+      <div class="staff-role">${s.role}</div>
+    </div>
+    <div class="staff-score">
+      <div class="score-val" style="color:${s.color}">${s.score}%</div>
+      <div class="score-bar" style="background:${s.color}22"><div style="width:${s.score}%;height:100%;border-radius:2px;background:${s.color}"></div></div>
+    </div>
+    <span class="status-pill ${s.statusClass}">${s.status}</span>`;
+  el.onclick = () => showDetail(i, el);
+  staffList.appendChild(el);
+});
+
+let sparkChart = null;
+function showDetail(i, el) {
+  document.querySelectorAll('.staff-row').forEach(r => r.classList.remove('selected'));
+  el.classList.add('selected');
+  const s = STAFF[i];
+  const panel = document.getElementById('detailPanel');
+  panel.innerHTML = `
+    <div class="detail-header">
+      <div class="detail-avatar" style="background:${s.color}18;color:${s.color}">${s.initials}</div>
+      <div>
+        <div class="detail-name">${s.name}</div>
+        <div class="detail-role">${s.role}</div>
+      </div>
+      <span class="status-pill ${s.statusClass}" style="margin-left:auto">${s.status}</span>
+    </div>
+    <div class="detail-stats">
+      <div class="dstat"><div class="dstat-val" style="color:${s.color}">${s.roundings}</div><div class="dstat-label">Roundings</div></div>
+      <div class="dstat"><div class="dstat-val" style="color:${s.color}">${s.attendance}</div><div class="dstat-label">Att. posts</div></div>
+      <div class="dstat"><div class="dstat-val" style="color:${s.color}">${s.pct}%</div><div class="dstat-label">Days active</div></div>
+    </div>
+    <div class="detail-note">${s.note}</div>
+    <div style="font-size:11px;color:var(--slate-light);margin-bottom:4px;">Monthly rounding trend</div>
+    <div class="spark-wrap"><canvas id="sparkCanvas"></canvas></div>`;
+
+  if (sparkChart) sparkChart.destroy();
+  sparkChart = new Chart(document.getElementById('sparkCanvas'), {
+    type: 'bar',
+    data: { labels: MONTHS, datasets: [{ data: s.rounding, backgroundColor: s.color + 'cc', borderRadius: 3, barPercentage: 0.85 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { display: false }, y: { display: false } }
+    }
+  });
+}
+showDetail(0, staffList.children[0]);
+
+new Chart(document.getElementById('roundChart'), {
+  type: 'line',
+  data: {
+    labels: MONTHS,
+    datasets: [
+      { label:'Danish', data:[0,0,0,0,0,0,0,33,54,50,36,43,33,26], borderColor:'#0891B2', tension:0.3, pointRadius:2, fill:false },
+      { label:'Abinash', data:[0,0,0,0,0,0,0,0,0,0,64,60,68,28], borderColor:'#D97706', tension:0.3, pointRadius:2, fill:false },
+      { label:'Madhu', data:[2,2,3,3,2,2,4,5,3,3,2,1,0,1], borderColor:'#7C3AED', tension:0.3, pointRadius:2, fill:false },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position:'bottom', labels:{boxWidth:8,font:{size:11},color:'#475569'} } },
+    scales: {
+      x: { ticks: { font: { size: 10 }, color: '#94A3B8', autoSkip:false, maxRotation:45 }, grid: { display: false } },
+      y: { ticks: { font: { size: 10 }, color: '#94A3B8' }, grid: { color: '#F1F5F9' } }
+    }
+  }
+});
+</script>
+</body>
+</html>

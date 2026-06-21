@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>WorkPulse — WhatsApp API Settings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0F1B3D; --navy2: #16234D; --blue: #2563EB; --blue-light: #DBEAFE;
+    --canvas: #FAFAF8; --slate: #475569; --slate-light: #94A3B8; --border: #E2E8F0;
+    --green: #059669; --green-bg: #ECFDF5; --amber: #D97706; --amber-bg: #FFFBEB;
+    --red: #DC2626; --red-bg: #FEF2F2; --white: #FFFFFF; --radius: 12px;
+    --wa-green: #25D366;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', sans-serif; background: var(--canvas); color: var(--navy); font-size: 14px; display: flex; min-height: 100vh; }
+
+  .sidebar { width: 232px; background: var(--navy); display: flex; flex-direction: column; padding: 1.5rem 0; position: fixed; top:0; left:0; bottom:0; color: #fff; z-index: 10; }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 0 1.25rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 1rem; }
+  .brand-icon { width: 32px; height: 32px; background: var(--blue); border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .brand-icon svg { width: 18px; height: 18px; fill: #fff; }
+  .brand-name { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 16px; }
+  .brand-tag { font-size: 10px; color: rgba(255,255,255,0.4); letter-spacing: 0.06em; }
+  .nav-label { font-size: 10px; color: rgba(255,255,255,0.35); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 0 1.25rem 0.5rem; margin-top: 1rem; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 1.25rem; color: rgba(255,255,255,0.65); font-size: 13px; cursor: pointer; text-decoration: none; }
+  .nav-item:hover { background: rgba(255,255,255,0.05); color: #fff; }
+  .nav-item.active { background: rgba(37,99,235,0.18); color: #fff; border-right: 2px solid var(--blue); font-weight: 500; }
+  .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .sidebar-footer { margin-top: auto; padding: 1rem 1.25rem; border-top: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 10px; }
+  .user-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--blue); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+  .user-name { font-size: 12px; font-weight: 600; color: #fff; }
+  .user-role { font-size: 10px; color: rgba(255,255,255,0.4); }
+  .logout-link { margin-left: auto; color: rgba(255,255,255,0.4); cursor: pointer; }
+
+  .main { margin-left: 232px; flex: 1; display: flex; flex-direction: column; }
+  .topbar { background: var(--white); border-bottom: 1px solid var(--border); padding: 1rem 1.75rem; }
+  .topbar-title { font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 700; }
+  .topbar-sub { font-size: 12px; color: var(--slate-light); margin-top: 1px; }
+
+  .content { padding: 1.75rem; max-width: 920px; display: flex; flex-direction: column; gap: 1.5rem; }
+
+  .card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; }
+  .card-head { display: flex; align-items: center; gap: 12px; margin-bottom: 1.25rem; }
+  .card-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .card-title { font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 700; }
+  .card-sub { font-size: 12px; color: var(--slate-light); margin-top: 1px; }
+
+  /* Connection status banner */
+  .status-banner { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 10px; margin-bottom: 1.5rem; }
+  .status-banner.disconnected { background: var(--amber-bg); border: 1px solid #FDE68A; }
+  .status-banner.connected { background: var(--green-bg); border: 1px solid #A7F3D0; }
+  .status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .status-text-title { font-size: 13px; font-weight: 700; }
+  .status-text-sub { font-size: 11px; color: var(--slate); margin-top: 1px; }
+
+  .field { margin-bottom: 1.1rem; }
+  .field-label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+  .field-hint { font-size: 11px; color: var(--slate-light); margin-top: 5px; line-height: 1.5; }
+  .field-input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 9px; font-size: 13px; font-family: 'Inter', sans-serif; outline: none; }
+  .field-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+  .field-input.mono { font-family: 'Monaco', monospace; font-size: 12px; }
+  .field-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+  .btn { padding: 10px 18px; border-radius: 9px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; font-family: 'Inter', sans-serif; display: inline-flex; align-items: center; gap: 7px; }
+  .btn-primary { background: var(--blue); color: #fff; }
+  .btn-primary:hover { background: #1D4ED8; }
+  .btn-secondary { background: var(--canvas); color: var(--navy); border: 1px solid var(--border); }
+  .btn-wa { background: var(--wa-green); color: #fff; }
+  .btn-danger-text { background: transparent; color: var(--red); padding: 10px 0; }
+
+  .divider { height: 1px; background: var(--border); margin: 1.5rem 0; }
+
+  /* Steps */
+  .steps { display: flex; flex-direction: column; gap: 0; }
+  .step { display: flex; gap: 14px; padding-bottom: 1.5rem; position: relative; }
+  .step:not(:last-child)::before { content: ''; position: absolute; left: 14px; top: 32px; bottom: 0; width: 1px; background: var(--border); }
+  .step-num { width: 28px; height: 28px; border-radius: 50%; background: var(--blue-light); color: var(--blue); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; z-index: 1; }
+  .step-num.done { background: var(--green); color: #fff; }
+  .step-body { flex: 1; padding-top: 3px; }
+  .step-title { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+  .step-desc { font-size: 12px; color: var(--slate); line-height: 1.55; }
+
+  /* Connected groups list */
+  .group-list { display: flex; flex-direction: column; gap: 8px; }
+  .group-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; }
+  .group-icon { width: 36px; height: 36px; border-radius: 9px; background: var(--green-bg); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .group-info { flex: 1; min-width: 0; }
+  .group-name { font-size: 13px; font-weight: 700; }
+  .group-meta { font-size: 11px; color: var(--slate-light); }
+  .group-status { font-size: 10px; padding: 3px 9px; border-radius: 20px; font-weight: 600; background: var(--green-bg); color: var(--green); }
+  .group-action { color: var(--slate-light); cursor: pointer; padding: 4px; }
+
+  /* AI Analysis preview */
+  .analysis-feature { display: flex; gap: 12px; padding: 14px; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; }
+  .analysis-feature-icon { width: 32px; height: 32px; border-radius: 8px; background: var(--blue-light); color: var(--blue); display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+  .analysis-feature-title { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+  .analysis-feature-desc { font-size: 12px; color: var(--slate); line-height: 1.5; }
+  .analysis-feature-status { margin-left: auto; align-self: center; }
+
+  .toggle { position: relative; width: 38px; height: 21px; flex-shrink: 0; }
+  .toggle input { display: none; }
+  .toggle-track { position: absolute; inset: 0; background: var(--border); border-radius: 20px; transition: 0.2s; cursor: pointer; }
+  .toggle-track::before { content: ''; position: absolute; width: 17px; height: 17px; left: 2px; top: 2px; background: #fff; border-radius: 50%; transition: 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+  .toggle input:checked + .toggle-track { background: var(--green); }
+  .toggle input:checked + .toggle-track::before { transform: translateX(17px); }
+
+  .api-key-row { display: flex; gap: 8px; }
+  .api-key-row .field-input { flex: 1; }
+  .copy-icon-btn { padding: 10px 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--white); cursor: pointer; color: var(--slate); }
+</style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="brand">
+    <div class="brand-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 12c3-7 9-9 18-9-2 5-2 9 0 14-9 0-15-2-18-5z" fill="white"/></svg></div>
+    <div><div class="brand-name">WorkPulse</div><div class="brand-tag">Operations Platform</div></div>
+  </div>
+
+  <div class="nav-label">Overview</div>
+  <a href="admin.html" class="nav-item"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="11" y="3" width="6" height="6" rx="1"/><rect x="3" y="11" width="6" height="6" rx="1"/><rect x="11" y="11" width="6" height="6" rx="1"/></svg>Dashboard</a>
+  <a href="#" class="nav-item"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="7" r="3"/><path d="M4 17c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>Staff</a>
+  <a href="#" class="nav-item"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="7"/><polyline points="10,7 10,10 12,12"/></svg>Pending work</a>
+  <a href="#" class="nav-item"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h12v12H4z"/><path d="M8 8h4M8 11h4M8 14h2"/></svg>Daily reports</a>
+
+  <div class="nav-label">Configuration</div>
+  <a href="whatsapp-settings.html" class="nav-item active"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 18s7-4.5 7-10a7 7 0 00-14 0c0 5.5 7 10 7 10z"/><circle cx="10" cy="8" r="2.5"/></svg>WhatsApp API</a>
+
+  <div class="sidebar-footer">
+    <div class="user-avatar" id="userAvatar">··</div>
+    <div><div class="user-name" id="userName">Loading...</div><div class="user-role">Branch Admin</div></div>
+    <a href="#" class="logout-link" onclick="wpSignOut(); return false;"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 17H4a1 1 0 01-1-1V4a1 1 0 011-1h3M13 14l4-4-4-4M17 10H7"/></svg></a>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">WhatsApp Business API</div>
+    <div class="topbar-sub">Connect your operations group to auto-analyse roundings, attendance, and pending tasks</div>
+  </div>
+
+  <div class="content">
+
+    <div class="status-banner disconnected" id="statusBanner">
+      <span class="status-dot" style="background:var(--amber);"></span>
+      <div>
+        <div class="status-text-title">Not connected yet</div>
+        <div class="status-text-sub">Add your WhatsApp Business API credentials below to start syncing your group chat.</div>
+      </div>
+    </div>
+
+    <!-- API Credentials -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:#DCFCE7;color:var(--wa-green);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.1-1.7-.8-1.9-.9-.3-.1-.5-.1-.6.1-.2.3-.7.9-.9 1.1-.2.2-.3.2-.6.1-.3-.1-1.3-.5-2.5-1.5-.9-.8-1.5-1.8-1.7-2.1-.2-.3 0-.5.1-.6.1-.1.3-.3.4-.5.1-.1.2-.3.3-.4.1-.2 0-.3 0-.5-.1-.1-.6-1.5-.9-2-.2-.5-.4-.5-.6-.5h-.5c-.2 0-.5.1-.7.3-.3.3-1 1-1 2.4s1 2.8 1.2 3c.1.2 2 3 4.8 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.7-.7 2-1.4.2-.7.2-1.3.1-1.4 0-.2-.2-.3-.5-.4z"/><path d="M12 2C6.5 2 2 6.5 2 12c0 1.8.5 3.6 1.4 5.1L2 22l5-1.3c1.4.8 3.1 1.2 4.9 1.2 5.5 0 10-4.5 10-10S17.5 2 12 2zm0 18.1c-1.6 0-3.2-.4-4.5-1.2l-.3-.2-3.3.9.9-3.2-.2-.3C3.7 14.8 3.2 13.4 3.2 12c0-4.8 3.9-8.7 8.7-8.7s8.7 3.9 8.7 8.7-3.8 8.8-8.6 8.8z"/></svg>
+        </div>
+        <div>
+          <div class="card-title">API credentials</div>
+          <div class="card-sub">From your Meta Business / WhatsApp Cloud API account</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Phone Number ID</label>
+        <input class="field-input mono" id="phoneId" placeholder="e.g. 109876543210123">
+        <div class="field-hint">Found in Meta Business Suite → WhatsApp → API Setup</div>
+      </div>
+
+      <div class="field-row-2">
+        <div class="field">
+          <label class="field-label">WhatsApp Business Account ID</label>
+          <input class="field-input mono" id="wabaId" placeholder="e.g. 987654321098765">
+        </div>
+        <div class="field">
+          <label class="field-label">App secret</label>
+          <input class="field-input mono" type="password" id="appSecret" placeholder="••••••••••••••••">
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Permanent access token</label>
+        <div class="api-key-row">
+          <input class="field-input mono" type="password" id="accessToken" placeholder="EAAxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+          <button class="copy-icon-btn" onclick="toggleTokenVisibility()">
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 10s3-6 8-6 8 6 8 6-3 6-8 6-8-6-8-6z"/><circle cx="10" cy="10" r="2.5"/></svg>
+          </button>
+        </div>
+        <div class="field-hint">Generate a permanent token in Meta Business Suite → System Users, so the connection doesn't expire every 24h.</div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Webhook verify token</label>
+        <input class="field-input mono" id="webhookToken" placeholder="Create a custom string, e.g. workpulse_sac_2026" value="workpulse_sac_2026">
+        <div class="field-hint">Paste this same token into Meta's webhook configuration screen to verify the connection.</div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-primary" onclick="testConnection()">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 2L3 7v6l7 5 7-5V7z"/></svg>
+          Test & connect
+        </button>
+        <button class="btn btn-secondary">Save as draft</button>
+      </div>
+    </div>
+
+    <!-- Setup guide -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:var(--blue-light);color:var(--blue);">📘</div>
+        <div>
+          <div class="card-title">How to get these credentials</div>
+          <div class="card-sub">5-minute setup via Meta for Developers</div>
+        </div>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num done">✓</div>
+          <div class="step-body">
+            <div class="step-title">Create a Meta Business app</div>
+            <div class="step-desc">Go to developers.facebook.com → My Apps → Create App → select "Business" type.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num done">✓</div>
+          <div class="step-body">
+            <div class="step-title">Add the WhatsApp product</div>
+            <div class="step-desc">In your app dashboard, add "WhatsApp" and link or create a WhatsApp Business Account.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">Copy your Phone Number ID & WABA ID</div>
+            <div class="step-desc">Found on the WhatsApp → API Setup page, right under "Send and receive messages".</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-title">Generate a permanent access token</div>
+            <div class="step-desc">Go to Business Settings → System Users → create a system user with "WhatsApp Business Messaging" permission, then generate a token with no expiry.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <div class="step-title">Set the webhook URL</div>
+            <div class="step-desc">Use <code style="background:var(--canvas);padding:2px 6px;border-radius:4px;font-size:11px;">https://api.workpulse.app/webhook/sac-sailfish</code> with the verify token above, and subscribe to the "messages" field.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Analysis features -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:#F3E8FF;color:#7C3AED;">🧠</div>
+        <div>
+          <div class="card-title">AI task & performance analysis</div>
+          <div class="card-sub">What WorkPulse does automatically once connected</div>
+        </div>
+      </div>
+
+      <div class="analysis-feature">
+        <div class="analysis-feature-icon">📋</div>
+        <div style="flex:1;">
+          <div class="analysis-feature-title">Pending task detection</div>
+          <div class="analysis-feature-desc">Scans @mentions and directives in the group to identify tasks assigned to each staff member, and flags ones with no completion reply.</div>
+        </div>
+        <div class="analysis-feature-status">
+          <label class="toggle"><input type="checkbox" checked><span class="toggle-track"></span></label>
+        </div>
+      </div>
+
+      <div class="analysis-feature">
+        <div class="analysis-feature-icon">✅</div>
+        <div style="flex:1;">
+          <div class="analysis-feature-title">Rounding & attendance tracking</div>
+          <div class="analysis-feature-desc">Detects "Rounding Facilities Checklist" and "Daily attendance report" messages to calculate compliance per staff, per day.</div>
+        </div>
+        <div class="analysis-feature-status">
+          <label class="toggle"><input type="checkbox" checked><span class="toggle-track"></span></label>
+        </div>
+      </div>
+
+      <div class="analysis-feature">
+        <div class="analysis-feature-icon">⚠️</div>
+        <div style="flex:1;">
+          <div class="analysis-feature-title">Facility issue & complaint flagging</div>
+          <div class="analysis-feature-desc">Identifies messages mentioning broken, leaking, faulty, or pending repairs — categorised by area (pool, toilet, gym, IT, etc).</div>
+        </div>
+        <div class="analysis-feature-status">
+          <label class="toggle"><input type="checkbox" checked><span class="toggle-track"></span></label>
+        </div>
+      </div>
+
+      <div class="analysis-feature">
+        <div class="analysis-feature-icon">📤</div>
+        <div style="flex:1;">
+          <div class="analysis-feature-title">Auto-generated daily group report</div>
+          <div class="analysis-feature-desc">Every morning at 8:00 AM, a consolidated report with pending tasks per staff is generated, ready to send back to the group.</div>
+        </div>
+        <div class="analysis-feature-status">
+          <label class="toggle"><input type="checkbox" checked><span class="toggle-track"></span></label>
+        </div>
+      </div>
+
+      <div class="field-hint" style="margin-top:0.5rem;">These features require an active WhatsApp connection above. Once connected, new messages sync automatically — no manual chat export needed.</div>
+    </div>
+
+    <!-- Connected groups -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" style="background:var(--canvas);color:var(--slate);">💬</div>
+        <div>
+          <div class="card-title">Connected groups</div>
+          <div class="card-sub">Currently syncing 1 group for this branch</div>
+        </div>
+      </div>
+      <div class="group-list">
+        <div class="group-row">
+          <div class="group-icon">🐟</div>
+          <div class="group-info">
+            <div class="group-name">SAC · Sailfish Operation Club</div>
+            <div class="group-meta">7 active members · Last synced 2 minutes ago</div>
+          </div>
+          <span class="group-status">Synced</span>
+          <div class="group-action">
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="4" cy="10" r="1.2"/><circle cx="10" cy="10" r="1.2"/><circle cx="16" cy="10" r="1.2"/></svg>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-secondary" style="margin-top:1rem;width:100%;justify-content:center;">+ Connect another group</button>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+const SUPABASE_URL = 'https://srsukpjjnatjchskmxfk.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_T8IShS-GWVmGnZH4hy6cYA_Li6H_tHw';
+
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+async function wpSignUp(email, password) {
+  const { data, error } = await supabaseClient.auth.signUp({ email, password });
+  return { data, error };
+}
+
+async function wpSignIn(email, password) {
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  return { data, error };
+}
+
+async function wpSignOut() {
+  await supabaseClient.auth.signOut();
+  window.location.href = 'login.html';
+}
+
+async function wpGetProfile() {
+  const { data: { user } } = await supabaseClient.auth.getUser();
+  if (!user) return null;
+
+  const { data: profile, error } = await supabaseClient
+    .from('profiles')
+    .select('*, branches(*)')
+    .eq('id', user.id)
+    .single();
+
+  if (error) {
+    console.error('Profile fetch error:', error);
+    return null;
+  }
+  return { ...profile, email: user.email };
+}
+
+async function wpRequireAuth(requiredRole = null) {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (!session) {
+    window.location.href = 'login.html';
+    return null;
+  }
+  const profile = await wpGetProfile();
+  if (!profile) {
+    window.location.href = 'login.html';
+    return null;
+  }
+  if (requiredRole && profile.role !== requiredRole) {
+    window.location.href = profile.role === 'superadmin' ? 'superadmin.html' : 'admin.html';
+    return null;
+  }
+  return profile;
+}
+
+async function wpGetBranches() {
+  const { data, error } = await supabaseClient.from('branches').select('*').order('created_at');
+  if (error) { console.error(error); return []; }
+  return data;
+}
+
+async function wpCreateBranch(name, location, whatsappGroupLink) {
+  const { data, error } = await supabaseClient
+    .from('branches')
+    .insert({ name, location, whatsapp_group_link: whatsappGroupLink })
+    .select()
+    .single();
+  return { data, error };
+}
+
+async function wpAssignAdmin(email, fullName, branchId) {
+  const { data, error } = await supabaseClient.rpc('invite_branch_admin', {
+    admin_email: email,
+    admin_name: fullName,
+    target_branch_id: branchId
+  });
+  return { data, error };
+}
+</script>
+<script>
+(async () => {
+  const profile = await wpRequireAuth(); // any logged-in role
+  if (!profile) return;
+  document.getElementById('userName').textContent = profile.full_name || profile.email;
+  const initials = (profile.full_name || profile.email).split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('userAvatar').textContent = initials;
+})();
+</script>
+<script>
+function toggleTokenVisibility() {
+  const input = document.getElementById('accessToken');
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
+
+function testConnection() {
+  const phoneId = document.getElementById('phoneId').value;
+  const wabaId = document.getElementById('wabaId').value;
+  const token = document.getElementById('accessToken').value;
+
+  if (!phoneId || !wabaId || !token) {
+    alert('Please fill in Phone Number ID, WABA ID, and Access Token to test the connection.');
+    return;
+  }
+
+  const banner = document.getElementById('statusBanner');
+  banner.innerHTML = `<span class="status-dot" style="background:var(--slate-light);"></span>
+    <div><div class="status-text-title">Testing connection...</div><div class="status-text-sub">Verifying credentials with Meta API</div></div>`;
+
+  setTimeout(() => {
+    banner.className = 'status-banner connected';
+    banner.innerHTML = `<span class="status-dot" style="background:var(--green);"></span>
+      <div><div class="status-text-title">Connected successfully</div><div class="status-text-sub">SAC Sailfish Operation Club is now syncing in real-time.</div></div>`;
+  }, 1500);
+}
+</script>
+</body>
+</html>

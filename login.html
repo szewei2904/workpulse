@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>WorkPulse — Sign in</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0F1B3D;
+    --navy2: #16234D;
+    --blue: #2563EB;
+    --blue-light: #DBEAFE;
+    --canvas: #FAFAF8;
+    --slate: #475569;
+    --slate-light: #94A3B8;
+    --green: #059669;
+    --amber: #D97706;
+    --border: #E2E8F0;
+    --white: #FFFFFF;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--canvas);
+    color: var(--navy);
+    min-height: 100vh;
+    display: flex;
+  }
+  .visual-panel {
+    flex: 1.15;
+    background: linear-gradient(165deg, var(--navy) 0%, var(--navy2) 55%, #1B2B5C 100%);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding: 3rem 3.5rem;
+    color: #fff;
+  }
+  .visual-panel::before {
+    content: '';
+    position: absolute;
+    top: -20%; right: -15%;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(37,99,235,0.25) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .brand-row { display: flex; align-items: center; gap: 12px; position: relative; z-index: 2; }
+  .brand-icon {
+    width: 38px; height: 38px;
+    background: var(--blue);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .brand-icon svg { width: 22px; height: 22px; fill: #fff; }
+  .brand-name { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 20px; letter-spacing: -0.02em; }
+  .brand-tag { font-size: 11px; color: rgba(255,255,255,0.5); letter-spacing: 0.08em; text-transform: uppercase; margin-top: -2px; }
+
+  .visual-content { margin-top: auto; margin-bottom: auto; position: relative; z-index: 2; max-width: 480px; }
+  .visual-eyebrow { font-size: 12px; color: var(--blue-light); letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; margin-bottom: 1rem; }
+  .visual-headline { font-family: 'Outfit', sans-serif; font-size: 34px; font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; margin-bottom: 1rem; }
+  .visual-headline span { color: #7DA3FF; }
+  .visual-sub { font-size: 14px; color: rgba(255,255,255,0.65); line-height: 1.6; margin-bottom: 2.5rem; }
+
+  /* Live data preview card */
+  .data-card {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 14px;
+    padding: 1.25rem;
+    backdrop-filter: blur(8px);
+  }
+  .data-card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+  .data-card-title { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.85); }
+  .live-dot { display: flex; align-items: center; gap: 5px; font-size: 10px; color: #6EE7B7; font-weight: 600; }
+  .live-dot::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #6EE7B7; box-shadow: 0 0 0 0 rgba(110,231,183,0.5); animation: pulse 2s infinite; }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(110,231,183,0.5); } 70% { box-shadow: 0 0 0 6px rgba(110,231,183,0); } 100% { box-shadow: 0 0 0 0 rgba(110,231,183,0); } }
+
+  .branch-rows { display: flex; flex-direction: column; gap: 8px; }
+  .branch-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: rgba(255,255,255,0.04); border-radius: 8px; }
+  .branch-status { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .branch-row-name { font-size: 12px; font-weight: 500; flex: 1; }
+  .branch-row-stat { font-size: 11px; color: rgba(255,255,255,0.5); }
+  .branch-bar-track { width: 60px; height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; }
+  .branch-bar-fill { height: 100%; border-radius: 2px; }
+
+  .visual-footer { position: relative; z-index: 2; display: flex; gap: 2rem; font-size: 12px; color: rgba(255,255,255,0.4); }
+
+  /* Form panel */
+  .form-panel {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    position: relative;
+  }
+  .lang-select {
+    position: absolute; top: 2rem; right: 2.5rem;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 13px; color: var(--slate); cursor: pointer;
+  }
+  .form-wrap { width: 100%; max-width: 380px; }
+  .form-eyebrow { font-size: 12px; color: var(--blue); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 0.6rem; }
+  .form-title { font-family: 'Outfit', sans-serif; font-size: 28px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.4rem; }
+  .form-sub { font-size: 14px; color: var(--slate); margin-bottom: 2rem; }
+
+  .role-toggle { display: flex; gap: 6px; background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 4px; margin-bottom: 1.5rem; }
+  .role-btn { flex: 1; padding: 8px; border-radius: 7px; border: none; background: transparent; font-size: 12px; font-weight: 600; color: var(--slate-light); cursor: pointer; font-family: 'Inter', sans-serif; transition: all 0.15s; }
+  .role-btn.active { background: var(--navy); color: #fff; }
+
+  .field { margin-bottom: 1.2rem; }
+  .field-label { display: block; font-size: 12px; font-weight: 600; color: var(--navy); margin-bottom: 6px; }
+  .field-input-wrap { position: relative; }
+  .field-input {
+    width: 100%; padding: 11px 14px; border: 1px solid var(--border); border-radius: 9px;
+    font-size: 14px; font-family: 'Inter', sans-serif; outline: none; transition: border-color 0.15s;
+    background: var(--white); color: var(--navy);
+  }
+  .field-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+  .field-input::placeholder { color: var(--slate-light); }
+  .eye-toggle { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--slate-light); background: none; border: none; padding: 4px; }
+
+  .field-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .forgot-link { font-size: 12px; color: var(--blue); text-decoration: none; font-weight: 500; }
+
+  .remember-row { display: flex; align-items: center; gap: 8px; margin-bottom: 1.5rem; }
+  .remember-row input { width: 15px; height: 15px; accent-color: var(--blue); cursor: pointer; }
+  .remember-row label { font-size: 13px; color: var(--slate); cursor: pointer; }
+
+  .sign-in-btn {
+    width: 100%; padding: 12px; background: var(--blue); color: #fff; border: none; border-radius: 9px;
+    font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif;
+    transition: background 0.15s; margin-bottom: 1.25rem;
+  }
+  .sign-in-btn:hover { background: #1D4ED8; }
+
+  .first-time { text-align: center; font-size: 13px; color: var(--slate); }
+  .first-time a { color: var(--blue); text-decoration: none; font-weight: 600; }
+
+  .demo-note { margin-top: 2rem; padding: 12px 14px; background: var(--blue-light); border-radius: 10px; font-size: 12px; color: #1E3A8A; line-height: 1.5; }
+  .demo-note strong { font-weight: 700; }
+
+  @media (max-width: 900px) {
+    .visual-panel { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="visual-panel">
+  <div class="brand-row">
+    <div class="brand-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 12c3-7 9-9 18-9-2 5-2 9 0 14-9 0-15-2-18-5z" fill="white"/><path d="M3 12l4-2v4l-4-2z" fill="white"/></svg></div>
+    <div>
+      <div class="brand-name">WorkPulse</div>
+      <div class="brand-tag">Multi-branch ops</div>
+    </div>
+  </div>
+
+  <div class="visual-content">
+    <div class="visual-eyebrow">Live across all branches</div>
+    <h1 class="visual-headline">Every rounding, every report, <span>one pulse.</span></h1>
+    <p class="visual-sub">Real-time staff performance, attendance, and pending work — pulled straight from your team's WhatsApp groups, organised by branch.</p>
+
+    <div class="data-card">
+      <div class="data-card-head">
+        <span class="data-card-title">Branch health — today</span>
+        <span class="live-dot">LIVE</span>
+      </div>
+      <div class="branch-rows">
+        <div class="branch-row">
+          <span class="branch-status" style="background:#34D399;"></span>
+          <span class="branch-row-name">SAC Sailfish</span>
+          <div class="branch-bar-track"><div class="branch-bar-fill" style="width:89%;background:#34D399;"></div></div>
+          <span class="branch-row-stat">89%</span>
+        </div>
+        <div class="branch-row">
+          <span class="branch-status" style="background:#34D399;"></span>
+          <span class="branch-row-name">Setia Eco Park</span>
+          <div class="branch-bar-track"><div class="branch-bar-fill" style="width:81%;background:#34D399;"></div></div>
+          <span class="branch-row-stat">81%</span>
+        </div>
+        <div class="branch-row">
+          <span class="branch-status" style="background:#FBBF24;"></span>
+          <span class="branch-row-name">Setia Alam Club</span>
+          <div class="branch-bar-track"><div class="branch-bar-fill" style="width:64%;background:#FBBF24;"></div></div>
+          <span class="branch-row-stat">64%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="visual-footer">
+    <span>3 branches</span>
+    <span>24 active staff</span>
+    <span>1,486 roundings tracked</span>
+  </div>
+</div>
+
+<div class="form-panel">
+  <div class="lang-select">
+    🇺🇸 English
+    <svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="5,8 10,13 15,8"/></svg>
+  </div>
+
+  <div class="form-wrap">
+    <div class="form-eyebrow">Welcome back</div>
+    <h2 class="form-title">Sign in to WorkPulse</h2>
+    <p class="form-sub">Access your operations dashboard</p>
+
+    <form id="loginForm" onsubmit="return handleLogin(event)">
+      <div class="field">
+        <label class="field-label">Account</label>
+        <input class="field-input" type="email" id="account" placeholder="you@example.com" required>
+      </div>
+
+      <div class="field">
+        <div class="field-row">
+          <label class="field-label" style="margin-bottom:0;">Password</label>
+          <a href="#" class="forgot-link" onclick="handleForgotPassword(event)">Forgotten password?</a>
+        </div>
+        <div class="field-input-wrap">
+          <input class="field-input" type="password" id="password" placeholder="Password" required>
+          <button type="button" class="eye-toggle" onclick="togglePw()">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 10s3-6 8-6 8 6 8 6-3 6-8 6-8-6-8-6z"/><circle cx="10" cy="10" r="2.5"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="remember-row">
+        <input type="checkbox" id="remember">
+        <label for="remember">Remember me</label>
+      </div>
+
+      <div id="loginError" style="display:none; background:#FEF2F2; border:1px solid #FECACA; color:#991B1B; font-size:12px; padding:10px 12px; border-radius:8px; margin-bottom:1rem;"></div>
+
+      <button type="submit" class="sign-in-btn" id="signInBtn">Sign In</button>
+    </form>
+
+    <div class="first-time">No account yet? <a href="#" onclick="toggleSignupMode(event)" id="signupToggle">Create one</a></div>
+
+    <div class="demo-note" id="setupNote">
+      <strong>First time setting this up?</strong> This login is wired to Supabase but needs your project URL + key. See <code>supabase-config.js</code> and the setup guide for the 10-minute walkthrough.
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+const SUPABASE_URL = 'https://srsukpjjnatjchskmxfk.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_T8IShS-GWVmGnZH4hy6cYA_Li6H_tHw';
+
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+async function wpSignUp(email, password) {
+  const { data, error } = await supabaseClient.auth.signUp({ email, password });
+  return { data, error };
+}
+
+async function wpSignIn(email, password) {
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  return { data, error };
+}
+
+async function wpSignOut() {
+  await supabaseClient.auth.signOut();
+  window.location.href = 'login.html';
+}
+
+async function wpGetProfile() {
+  const { data: { user } } = await supabaseClient.auth.getUser();
+  if (!user) return null;
+
+  const { data: profile, error } = await supabaseClient
+    .from('profiles')
+    .select('*, branches(*)')
+    .eq('id', user.id)
+    .single();
+
+  if (error) {
+    console.error('Profile fetch error:', error);
+    return null;
+  }
+  return { ...profile, email: user.email };
+}
+
+async function wpRequireAuth(requiredRole = null) {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (!session) {
+    window.location.href = 'login.html';
+    return null;
+  }
+  const profile = await wpGetProfile();
+  if (!profile) {
+    window.location.href = 'login.html';
+    return null;
+  }
+  if (requiredRole && profile.role !== requiredRole) {
+    window.location.href = profile.role === 'superadmin' ? 'superadmin.html' : 'admin.html';
+    return null;
+  }
+  return profile;
+}
+
+async function wpGetBranches() {
+  const { data, error } = await supabaseClient.from('branches').select('*').order('created_at');
+  if (error) { console.error(error); return []; }
+  return data;
+}
+
+async function wpCreateBranch(name, location, whatsappGroupLink) {
+  const { data, error } = await supabaseClient
+    .from('branches')
+    .insert({ name, location, whatsapp_group_link: whatsappGroupLink })
+    .select()
+    .single();
+  return { data, error };
+}
+
+async function wpAssignAdmin(email, fullName, branchId) {
+  const { data, error } = await supabaseClient.rpc('invite_branch_admin', {
+    admin_email: email,
+    admin_name: fullName,
+    target_branch_id: branchId
+  });
+  return { data, error };
+}
+</script>
+<script>
+let isSignupMode = false;
+
+function togglePw() {
+  const pw = document.getElementById('password');
+  pw.type = pw.type === 'password' ? 'text' : 'password';
+}
+
+function toggleSignupMode(e) {
+  e.preventDefault();
+  isSignupMode = !isSignupMode;
+  document.getElementById('signInBtn').textContent = isSignupMode ? 'Create account' : 'Sign In';
+  document.querySelector('.form-title').textContent = isSignupMode ? 'Create your account' : 'Sign in to WorkPulse';
+  document.getElementById('signupToggle').textContent = isSignupMode ? 'Already have an account? Sign in' : 'Create one';
+  document.getElementById('signupToggle').previousSibling.textContent = '';
+}
+
+function showError(msg) {
+  const el = document.getElementById('loginError');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function hideError() {
+  document.getElementById('loginError').style.display = 'none';
+}
+
+function handleForgotPassword(e) {
+  e.preventDefault();
+  const email = document.getElementById('account').value;
+  if (!email) { showError('Enter your email above first, then click "Forgotten password?" again.'); return; }
+  supabaseClient.auth.resetPasswordForEmail(email).then(({ error }) => {
+    if (error) showError(error.message);
+    else { hideError(); alert('Password reset link sent to ' + email); }
+  });
+}
+
+async function handleLogin(e) {
+  e.preventDefault();
+  hideError();
+  const email = document.getElementById('account').value.trim();
+  const password = document.getElementById('password').value;
+  const btn = document.getElementById('signInBtn');
+  btn.disabled = true;
+  btn.textContent = isSignupMode ? 'Creating account...' : 'Signing in...';
+
+  try {
+    if (isSignupMode) {
+      const { data, error } = await wpSignUp(email, password);
+      if (error) { showError(error.message); btn.disabled = false; btn.textContent = 'Create account'; return false; }
+      showError('');
+      alert('Account created! Check your email to confirm, then sign in.\n\nNote: a superadmin still needs to assign your role and branch in the profiles table before you can access a dashboard.');
+      isSignupMode = false;
+      toggleSignupMode({ preventDefault(){} });
+      btn.disabled = false;
+      return false;
+    }
+
+    const { data, error } = await wpSignIn(email, password);
+    if (error) {
+      showError(error.message === 'Invalid login credentials' ? 'Incorrect email or password.' : error.message);
+      btn.disabled = false;
+      btn.textContent = 'Sign In';
+      return false;
+    }
+
+    const profile = await wpGetProfile();
+    if (!profile) {
+      showError('Your account has no role assigned yet. Ask a superadmin to set you up.');
+      await supabaseClient.auth.signOut();
+      btn.disabled = false;
+      btn.textContent = 'Sign In';
+      return false;
+    }
+
+    window.location.href = profile.role === 'superadmin' ? 'superadmin.html' : 'admin.html';
+  } catch (err) {
+    showError('Connection error — check that supabase-config.js has your real project URL and key.');
+    btn.disabled = false;
+    btn.textContent = 'Sign In';
+  }
+  return false;
+}
+
+// If already logged in, skip straight to dashboard
+(async () => {
+  try {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session) {
+      const profile = await wpGetProfile();
+      if (profile) window.location.href = profile.role === 'superadmin' ? 'superadmin.html' : 'admin.html';
+    }
+  } catch (e) { /* config not set up yet — stay on login page */ }
+})();
+</script>
+</body>
+</html>
