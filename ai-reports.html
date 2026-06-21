@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>WorkPulse — AI Reports</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0F1B3D; --navy2: #16234D; --blue: #2563EB; --blue-light: #DBEAFE;
+    --canvas: #FAFAF8; --slate: #475569; --slate-light: #94A3B8; --border: #E2E8F0;
+    --green: #059669; --green-bg: #ECFDF5; --amber: #D97706; --amber-bg: #FFFBEB;
+    --red: #DC2626; --red-bg: #FEF2F2; --white: #FFFFFF; --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', sans-serif; background: var(--canvas); color: var(--navy); font-size: 14px; display: flex; min-height: 100vh; }
+
+  .sidebar { width: 232px; background: var(--navy); display: flex; flex-direction: column; padding: 1.5rem 0; position: fixed; top:0; left:0; bottom:0; color: #fff; z-index: 10; }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 0 1.25rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 1rem; }
+  .brand-icon { width: 32px; height: 32px; background: var(--blue); border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .brand-icon svg { width: 18px; height: 18px; fill: #fff; }
+  .brand-name { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 16px; }
+  .brand-tag { font-size: 10px; color: rgba(255,255,255,0.4); letter-spacing: 0.06em; }
+
+  .branch-locked { margin: 0 1.25rem 1.25rem; padding: 10px 12px; background: rgba(5,150,105,0.15); border: 1px solid rgba(5,150,105,0.3); border-radius: 8px; }
+  .branch-locked-label { font-size: 9px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 3px; }
+  .branch-locked-name { font-size: 13px; font-weight: 700; color: #6EE7B7; display: flex; align-items: center; gap: 6px; }
+
+  .nav-label { font-size: 10px; color: rgba(255,255,255,0.35); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 0 1.25rem 0.5rem; margin-top: 1rem; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 1.25rem; color: rgba(255,255,255,0.65); font-size: 13px; cursor: pointer; text-decoration: none; }
+  .nav-item:hover { background: rgba(255,255,255,0.05); color: #fff; }
+  .nav-item.active { background: rgba(37,99,235,0.18); color: #fff; border-right: 2px solid var(--blue); font-weight: 500; }
+  .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+  .sidebar-footer { margin-top: auto; padding: 1rem 1.25rem; border-top: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 10px; }
+  .user-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--blue); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+  .user-name { font-size: 12px; font-weight: 600; color: #fff; }
+  .user-role { font-size: 10px; color: rgba(255,255,255,0.4); }
+  .logout-link { margin-left: auto; color: rgba(255,255,255,0.4); cursor: pointer; }
+
+  .main { margin-left: 232px; flex: 1; display: flex; flex-direction: column; }
+  .topbar { background: var(--white); border-bottom: 1px solid var(--border); padding: 1rem 1.75rem; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 5; }
+  .topbar-title { font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 700; }
+  .topbar-sub { font-size: 12px; color: var(--slate-light); margin-top: 1px; }
+
+  .content { padding: 1.75rem; max-width: 920px; }
+
+  .card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1.25rem; }
+  .card-title { font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 700; margin-bottom: 0.25rem; }
+  .card-sub { font-size: 12px; color: var(--slate-light); margin-bottom: 1.25rem; }
+
+  .key-row { display: flex; gap: 10px; align-items: center; }
+  .key-input { flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 9px; font-size: 13px; font-family: 'Inter', monospace; }
+  .key-input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+  .btn { padding: 10px 18px; border-radius: 9px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'Inter', sans-serif; white-space: nowrap; }
+  .btn-primary { background: var(--blue); color: #fff; }
+  .btn-primary:hover { background: #1D4ED8; }
+  .btn-primary:disabled { background: var(--slate-light); cursor: not-allowed; }
+  .btn-secondary { background: var(--canvas); color: var(--navy); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: var(--border); }
+  .key-status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--green); font-weight: 600; margin-top: 10px; }
+  .key-status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+  .help-link { font-size: 12px; color: var(--blue); text-decoration: none; }
+
+  .generate-row { display: flex; gap: 10px; align-items: center; margin-bottom: 0; }
+  .spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; display: inline-block; animation: spin 0.7s linear infinite; vertical-align: -2px; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .report-box { background: var(--canvas); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem; white-space: pre-wrap; font-size: 13px; line-height: 1.6; color: var(--navy); margin-top: 1.25rem; min-height: 80px; }
+  .report-actions { display: flex; gap: 10px; margin-top: 1rem; }
+  .wa-btn { background: #25D366; color: #fff; }
+  .wa-btn:hover { background: #1EBE57; }
+
+  .empty-state { text-align: center; padding: 2rem; color: var(--slate-light); font-size: 13px; }
+
+  .history-item { display: flex; justify-content: space-between; align-items: flex-start; padding: 14px 0; border-bottom: 1px solid var(--border); gap: 1rem; }
+  .history-item:last-child { border-bottom: none; }
+  .history-date { font-size: 12px; color: var(--slate-light); font-weight: 600; white-space: nowrap; flex-shrink: 0; }
+  .history-preview { font-size: 12px; color: var(--slate); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .history-view { font-size: 12px; color: var(--blue); cursor: pointer; font-weight: 600; flex-shrink: 0; }
+
+  .error-box { background: var(--red-bg); border: 1px solid #FECACA; color: #991B1B; font-size: 12px; padding: 10px 14px; border-radius: 8px; margin-top: 12px; }
+</style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="brand">
+    <div class="brand-icon"><svg viewBox="0 0 24 24" fill="none"><path d="M3 12c3-7 9-9 18-9-2 5-2 9 0 14-9 0-15-2-18-5z" fill="white"/></svg></div>
+    <div><div class="brand-name">WorkPulse</div><div class="brand-tag">Operations Platform</div></div>
+  </div>
+
+  <div class="branch-locked">
+    <div class="branch-locked-label">Your branch</div>
+    <div class="branch-locked-name" id="branchName">
+      <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="14" height="14" rx="2"/><path d="M7 7h.01M13 7h.01M7 13h.01M13 13h.01"/></svg>
+      <span id="branchNameText">Loading...</span>
+    </div>
+  </div>
+
+  <div class="nav-label">Overview</div>
+  <a href="admin.html" class="nav-item"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="11" y="3" width="6" height="6" rx="1"/><rect x="3" y="11" width="6" height="6" rx="1"/><rect x="11" y="11" width="6" height="6" rx="1"/></svg>Dashboard</a>
+  <a href="admin.html#staff" class="nav-item"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="7" r="3"/><path d="M4 17c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>Staff</a>
+  <a href="admin.html#pending" class="nav-item"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="7"/><polyline points="10,7 10,10 12,12"/></svg>Pending work</a>
+  <a href="ai-reports.html" class="nav-item active"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h12v12H4z"/><path d="M8 8h4M8 11h4M8 14h2"/></svg>Daily reports</a>
+
+  <div class="nav-label">Configuration</div>
+  <a href="whatsapp-settings.html" class="nav-item"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 18s7-4.5 7-10a7 7 0 00-14 0c0 5.5 7 10 7 10z"/><circle cx="10" cy="8" r="2.5"/></svg>WhatsApp API</a>
+
+  <div class="sidebar-footer">
+    <div class="user-avatar" id="userAvatar">··</div>
+    <div><div class="user-name" id="userName">Loading...</div><div class="user-role">Branch Admin</div></div>
+    <a href="#" class="logout-link" onclick="wpSignOut(); return false;"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 17H4a1 1 0 01-1-1V4a1 1 0 011-1h3M13 14l4-4-4-4M17 10H7"/></svg></a>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">AI Daily Reports</div>
+      <div class="topbar-sub">Auto-generate a WhatsApp-ready summary from today's pending work</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <div class="card" id="setupCard">
+      <div class="card-title">Groq API key</div>
+      <div class="card-sub">Free tier, no credit card required. Stored against your branch only.</div>
+      <div class="key-row">
+        <input class="key-input" id="groqKeyInput" type="password" placeholder="gsk_...">
+        <button class="btn btn-secondary" onclick="toggleKeyVisibility()" id="toggleKeyBtn" type="button">Show</button>
+        <button class="btn btn-primary" onclick="saveKey()" id="saveKeyBtn">Save key</button>
+      </div>
+      <div id="keyStatus" style="display:none;" class="key-status">Key saved for this branch</div>
+      <div id="keyError"></div>
+      <div style="margin-top: 12px;">
+        <a class="help-link" href="https://console.groq.com/keys" target="_blank" rel="noopener">Get a free Groq API key →</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Generate today's report</div>
+      <div class="card-sub">Pulls open pending tasks for every staff member on your branch and writes one consolidated message.</div>
+      <div class="generate-row">
+        <button class="btn btn-primary" id="generateBtn" onclick="generateReport()">Generate report</button>
+      </div>
+      <div id="generateError"></div>
+      <div id="reportOutput"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Report history</div>
+      <div class="card-sub">Previously generated reports for this branch</div>
+      <div id="historyList"><div class="empty-state">Loading history…</div></div>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+const SUPABASE_URL = 'https://srsukpjjnatjchskmxfk.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_T8IShS-GWVmGnZH4hy6cYA_Li6H_tHw';
+
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+async function wpSignOut() {
+  await supabaseClient.auth.signOut();
+  window.location.href = 'login.html';
+}
+
+async function wpGetProfile() {
+  const { data: { user } } = await supabaseClient.auth.getUser();
+  if (!user) return null;
+  const { data: profile, error } = await supabaseClient
+    .from('profiles')
+    .select('*, branches(*)')
+    .eq('id', user.id)
+    .single();
+  if (error) { console.error('Profile fetch error:', error); return null; }
+  return { ...profile, email: user.email };
+}
+
+async function wpRequireAuth(requiredRole = null) {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (!session) { window.location.href = 'login.html'; return null; }
+  const profile = await wpGetProfile();
+  if (!profile) { window.location.href = 'login.html'; return null; }
+  if (requiredRole && profile.role !== requiredRole) {
+    window.location.href = profile.role === 'superadmin' ? 'superadmin.html' : 'admin.html';
+    return null;
+  }
+  return profile;
+}
+</script>
+<script>
+let CURRENT_BRANCH_ID = null;
+let CURRENT_BRANCH_NAME = '';
+
+function toggleKeyVisibility() {
+  const input = document.getElementById('groqKeyInput');
+  const btn = document.getElementById('toggleKeyBtn');
+  input.type = input.type === 'password' ? 'text' : 'password';
+  btn.textContent = input.type === 'password' ? 'Show' : 'Hide';
+}
+
+function showCardError(elId, msg) {
+  document.getElementById(elId).innerHTML = '<div class="error-box">' + msg + '</div>';
+}
+function clearCardError(elId) {
+  document.getElementById(elId).innerHTML = '';
+}
+
+async function loadExistingKey() {
+  const { data } = await supabaseClient
+    .from('ai_settings')
+    .select('groq_api_key')
+    .eq('branch_id', CURRENT_BRANCH_ID)
+    .maybeSingle();
+  if (data && data.groq_api_key) {
+    document.getElementById('groqKeyInput').value = data.groq_api_key;
+    document.getElementById('keyStatus').style.display = 'flex';
+  }
+}
+
+async function saveKey() {
+  const key = document.getElementById('groqKeyInput').value.trim();
+  clearCardError('keyError');
+  if (!key) { showCardError('keyError', 'Enter a Groq API key first.'); return; }
+
+  const btn = document.getElementById('saveKeyBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  const { error } = await supabaseClient
+    .from('ai_settings')
+    .upsert({ branch_id: CURRENT_BRANCH_ID, groq_api_key: key }, { onConflict: 'branch_id' });
+
+  btn.disabled = false;
+  btn.textContent = 'Save key';
+
+  if (error) { showCardError('keyError', error.message); return; }
+  document.getElementById('keyStatus').style.display = 'flex';
+}
+
+async function fetchPendingTasksByStaff() {
+  const { data: staff, error: staffErr } = await supabaseClient
+    .from('staff')
+    .select('id, name, role')
+    .eq('branch_id', CURRENT_BRANCH_ID);
+
+  if (staffErr) throw new Error(staffErr.message);
+
+  const { data: tasks, error: taskErr } = await supabaseClient
+    .from('pending_tasks')
+    .select('staff_id, task_text, assigned_by, task_date')
+    .eq('branch_id', CURRENT_BRANCH_ID)
+    .eq('resolved', false)
+    .order('task_date', { ascending: true });
+
+  if (taskErr) throw new Error(taskErr.message);
+
+  return (staff || []).map(function(s) {
+    return {
+      name: s.name,
+      role: s.role,
+      tasks: (tasks || []).filter(function(t) { return t.staff_id === s.id; })
+    };
+  });
+}
+
+async function generateReport() {
+  clearCardError('generateError');
+  document.getElementById('reportOutput').innerHTML = '';
+
+  const { data: settings } = await supabaseClient
+    .from('ai_settings')
+    .select('groq_api_key')
+    .eq('branch_id', CURRENT_BRANCH_ID)
+    .maybeSingle();
+
+  const groqKey = settings && settings.groq_api_key;
+  if (!groqKey) {
+    showCardError('generateError', 'Save a Groq API key above first.');
+    return;
+  }
+
+  const btn = document.getElementById('generateBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Generating...';
+
+  try {
+    const staffWithTasks = await fetchPendingTasksByStaff();
+    const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    const staffSummary = staffWithTasks.map(function(s) {
+      const taskLines = s.tasks.length
+        ? s.tasks.map(function(t) { return '  - ' + t.task_text + (t.assigned_by ? ' (from ' + t.assigned_by + ')' : ''); }).join('\n')
+        : '  - No open tasks';
+      return s.name + ' (' + (s.role || 'Staff') + '):\n' + taskLines;
+    }).join('\n\n');
+
+    const prompt = 'You are writing a short daily operations report for a WhatsApp group at "' + CURRENT_BRANCH_NAME + '". Today is ' + today + '.\n\n' +
+      'Here is each staff member and their currently open/pending tasks:\n\n' + staffSummary + '\n\n' +
+      'Write a single consolidated WhatsApp message covering all staff. Requirements:\n' +
+      '- Start with a one-line header like "Daily Ops Report — ' + today + '"\n' +
+      '- One short section per staff member with their name in bold (using *name* WhatsApp formatting) and a brief bullet list of their open tasks\n' +
+      '- If a staff member has no open tasks, just write "All clear" under their name\n' +
+      '- Keep it concise and scannable — this is read on a phone\n' +
+      '- End with a short one-line summary (e.g. total open items)\n' +
+      '- Do not add any preamble or explanation outside the message itself — output ONLY the WhatsApp message text';
+
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + groqKey
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.4
+      })
+    });
+
+    if (!response.ok) {
+      const errBody = await response.json().catch(function() { return {}; });
+      throw new Error((errBody.error && errBody.error.message) || ('Groq API error: ' + response.status));
+    }
+
+    const result = await response.json();
+    const reportText = result.choices && result.choices[0] && result.choices[0].message && result.choices[0].message.content
+      ? result.choices[0].message.content.trim() : null;
+    if (!reportText) throw new Error('No report text returned by the AI.');
+
+    await supabaseClient.from('ai_reports').insert({
+      branch_id: CURRENT_BRANCH_ID,
+      report_text: reportText
+    });
+
+    renderReport(reportText);
+    loadHistory();
+
+  } catch (err) {
+    showCardError('generateError', err.message || 'Something went wrong generating the report.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Generate report';
+  }
+}
+
+function renderReport(text) {
+  const safeText = text.replace(/</g, '&lt;');
+  document.getElementById('reportOutput').innerHTML =
+    '<div class="report-box">' + safeText + '</div>' +
+    '<div class="report-actions">' +
+      '<button class="btn btn-secondary" onclick="copyReport()" id="copyBtn">Copy text</button>' +
+      '<a class="btn wa-btn" id="waBtn" href="https://wa.me/?text=' + encodeURIComponent(text) + '" target="_blank" rel="noopener" style="text-decoration:none; display:inline-flex; align-items:center;">Send via WhatsApp</a>' +
+    '</div>';
+  window._lastReportText = text;
+}
+
+function copyReport() {
+  if (!window._lastReportText) return;
+  navigator.clipboard.writeText(window._lastReportText).then(function() {
+    const btn = document.getElementById('copyBtn');
+    const original = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(function() { btn.textContent = original; }, 1500);
+  });
+}
+
+async function loadHistory() {
+  const { data, error } = await supabaseClient
+    .from('ai_reports')
+    .select('id, report_text, generated_at')
+    .eq('branch_id', CURRENT_BRANCH_ID)
+    .order('generated_at', { ascending: false })
+    .limit(10);
+
+  const listEl = document.getElementById('historyList');
+
+  if (error) {
+    listEl.innerHTML = '<div class="error-box">' + error.message + '</div>';
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    listEl.innerHTML = '<div class="empty-state">No reports generated yet.</div>';
+    return;
+  }
+
+  listEl.innerHTML = data.map(function(r) {
+    const date = new Date(r.generated_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    const preview = r.report_text.replace(/\n/g, ' ').slice(0, 90);
+    return '<div class="history-item">' +
+        '<div class="history-date">' + date + '</div>' +
+        '<div class="history-preview">' + preview.replace(/</g, '&lt;') + '…</div>' +
+        '<div class="history-view" onclick="viewHistoryReport(window._historyTexts[\'' + r.id + '\'])">View</div>' +
+      '</div>';
+  }).join('');
+
+  window._historyTexts = {};
+  data.forEach(function(r) { window._historyTexts[r.id] = r.report_text; });
+}
+
+function viewHistoryReport(text) {
+  renderReport(text);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+(async function() {
+  const profile = await wpRequireAuth();
+  if (!profile) return;
+
+  document.getElementById('userName').textContent = profile.full_name || profile.email;
+  const initials = (profile.full_name || profile.email).split(' ').map(function(w) { return w[0]; }).join('').slice(0,2).toUpperCase();
+  document.getElementById('userAvatar').textContent = initials;
+
+  if (profile.branches) {
+    document.getElementById('branchNameText').textContent = profile.branches.name;
+    CURRENT_BRANCH_ID = profile.branches.id;
+    CURRENT_BRANCH_NAME = profile.branches.name;
+  } else if (profile.role === 'superadmin') {
+    document.getElementById('branchNameText').textContent = 'Select a branch first';
+    document.getElementById('setupCard').innerHTML = '<div class="empty-state">As superadmin, open a specific branch to manage its AI reports.</div>';
+    document.getElementById('generateBtn').disabled = true;
+    return;
+  } else {
+    document.getElementById('branchNameText').textContent = 'No branch assigned';
+    return;
+  }
+
+  await loadExistingKey();
+  await loadHistory();
+})();
+</script>
+</body>
+</html>
